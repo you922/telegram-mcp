@@ -226,6 +226,12 @@ class ProxyManager:
         """
         转换为 Telethon 代理格式
 
+        智能处理各种代理配置组合：
+        - 有用户名和密码
+        - 只有密码
+        - 只有用户名
+        - 都没有
+
         Args:
             proxy_config: 代理配置
 
@@ -233,43 +239,38 @@ class ProxyManager:
             Telethon 格式的代理配置
         """
         protocol = proxy_config.get("protocol", "socks5")
+        host = proxy_config.get('host')
+        port = proxy_config.get('port')
+        username = proxy_config.get('username')
+        password = proxy_config.get('password')
 
+        # 基础配置
+        config = {
+            'proxy_type': protocol,
+            'addr': host,
+            'port': port
+        }
+
+        # 根据不同协议添加认证信息
         if protocol == "socks5":
-            return {
-                'proxy_type': 'socks5',
-                'addr': proxy_config['host'],
-                'port': proxy_config['port'],
-                'username': proxy_config.get('username'),
-                'password': proxy_config.get('password'),
-                'rdns': True
-            }
-        elif protocol == "http":
-            return {
-                'proxy_type': 'http',
-                'addr': proxy_config['host'],
-                'port': proxy_config['port'],
-                'username': proxy_config.get('username'),
-                'password': proxy_config.get('password')
-            }
-        elif protocol == "https":
-            # HTTPS 使用 HTTP 代理类型
-            return {
-                'proxy_type': 'http',
-                'addr': proxy_config['host'],
-                'port': proxy_config['port'],
-                'username': proxy_config.get('username'),
-                'password': proxy_config.get('password')
-            }
-        elif protocol == "socks4":
-            return {
-                'proxy_type': 'socks4',
-                'addr': proxy_config['host'],
-                'port': proxy_config['port'],
-                'username': proxy_config.get('username'),
-                'password': proxy_config.get('password')
-            }
+            config['rdns'] = True
+            # SOCKS5 支持：有用户名+密码、只有密码、都没有
+            if username or password:
+                config['username'] = username or ''
+                config['password'] = password or ''
 
-        return None
+        elif protocol == "http" or protocol == "https":
+            # HTTP/HTTPS 支持：有用户名+密码
+            if username and password:
+                config['username'] = username
+                config['password'] = password
+
+        elif protocol == "socks4":
+            # SOCKS4 只支持用户名，不支持密码
+            if username:
+                config['username'] = username
+
+        return config
 
     def get_global_proxy(self) -> Optional[Dict]:
         """

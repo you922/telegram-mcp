@@ -139,11 +139,19 @@ async def list_accounts():
 async def generate_qr_code(request: dict):
     """生成二维码"""
     account_id = request.get("account_id")
+    proxy_id = request.get("proxy_id")  # 可选：登录时指定的代理
+
     if not account_id:
         raise HTTPException(status_code=400, detail="缺少 account_id")
 
     stats_tracker.record_use(account_id)
-    proxy = proxy_manager.get_proxy_for_account(account_id)
+
+    # 优先使用登录时指定的代理，否则使用账号关联的代理
+    if proxy_id:
+        proxy = proxy_manager.get_proxy(proxy_id)
+    else:
+        proxy = proxy_manager.get_proxy_for_account(account_id)
+
     result = await account_manager.generate_qr_code(account_id, proxy)
     return result
 
@@ -240,11 +248,17 @@ async def send_phone_code(request: dict):
     """发送验证码到手机号"""
     account_id = request.get("account_id")
     phone = request.get("phone")
+    proxy_id = request.get("proxy_id")  # 可选：登录时指定的代理
 
     if not account_id or not phone:
         raise HTTPException(status_code=400, detail="缺少必要参数")
 
-    proxy = proxy_manager.get_proxy_for_account(account_id)
+    # 优先使用登录时指定的代理，否则使用账号关联的代理
+    if proxy_id:
+        proxy = proxy_manager.get_proxy(proxy_id)
+    else:
+        proxy = proxy_manager.get_proxy_for_account(account_id)
+
     result = await account_manager.send_phone_code(account_id, phone, proxy)
 
     if result.get("success"):

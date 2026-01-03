@@ -475,7 +475,7 @@
                     <div class="card-header">
                         <h3>🔌 独立代理</h3>
                     </div>
-                    <p style="color: #999; margin-bottom: 15px;">为特定账号设置独立代理，优先级高于全局代理</p>
+                    <p style="color: #999; margin-bottom: 15px;">为特定账号设置独立代理，优先级高于全局代理。用户名和密码根据代理类型可选填。</p>
                     <div class="form-row">
                         <div class="form-group">
                             <label>代理名称</label>
@@ -499,6 +499,16 @@
                             <input v-model.number="newProxy.port" type="number" class="form-control" placeholder="1080">
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>用户名 (可选)</label>
+                            <input v-model="newProxy.username" class="form-control" placeholder="留空则不需要">
+                        </div>
+                        <div class="form-group">
+                            <label>密码 (可选)</label>
+                            <input v-model="newProxy.password" type="password" class="form-control" placeholder="留空则不需要">
+                        </div>
+                    </div>
                     <button class="btn btn-primary" @click="addProxy" :disabled="!newProxy.id || !newProxy.host || !newProxy.port">
                         添加代理
                     </button>
@@ -508,6 +518,11 @@
                             <div class="proxy-info">
                                 <h4>{{ proxy.proxy_id }} <span class="badge badge-warning">{{ proxy.protocol.toUpperCase() }}</span></h4>
                                 <p>{{ proxy.host }}:{{ proxy.port }}</p>
+                                <p style="font-size: 12px; color: #999;">
+                                    <span v-if="proxy.username">用户名: {{ proxy.username }}</span>
+                                    <span v-if="proxy.password" style="margin-left: 10px;">密码: ••••••</span>
+                                    <span v-if="!proxy.username && !proxy.password" style="color: #27ae60;">无认证</span>
+                                </p>
                             </div>
                             <div class="proxy-actions">
                                 <button class="btn btn-sm btn-success" @click="testProxy(proxy.proxy_id)">测试</button>
@@ -744,7 +759,32 @@
                 <div v-if="loginMode === 'select'" style="text-align: center;">
                     <h2>添加账号</h2>
                     <p class="subtitle">选择登录方式</p>
-                    <div style="display: flex; gap: 15px; margin-top: 30px; justify-content: center;">
+
+                    <!-- 代理选择 -->
+                    <div style="margin: 20px 0; text-align: left; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px;">
+                        <label style="color: #999; font-size: 14px;">🌐 代理设置 (可选)</label>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button class="btn btn-sm" :class="loginProxyMode === 'none' ? 'btn-primary' : 'btn-outline'" @click="loginProxyMode = 'none'; loginProxyId = null" style="flex: 1;">
+                                不使用代理
+                            </button>
+                            <button class="btn btn-sm" :class="loginProxyMode === 'select' ? 'btn-primary' : 'btn-outline'" @click="loginProxyMode = 'select'" style="flex: 1;" :disabled="proxies.length === 0">
+                                使用代理
+                            </button>
+                        </div>
+                        <div v-if="loginProxyMode === 'select'" style="margin-top: 10px;">
+                            <select v-model="loginProxyId" class="form-control">
+                                <option value="">-- 选择代理 --</option>
+                                <option v-for="proxy in proxies" :key="proxy.proxy_id" :value="proxy.proxy_id">
+                                    {{ proxy.proxy_id }} ({{ proxy.protocol }}) - {{ proxy.host }}:{{ proxy.port }}
+                                </option>
+                            </select>
+                            <div v-if="loginProxyId" style="font-size: 12px; color: #27ae60; margin-top: 5px;">
+                                ✓ 已选择: {{ proxies.find(p => p.proxy_id === loginProxyId)?.host }}:{{ proxies.find(p => p.proxy_id === loginProxyId)?.port }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; margin-top: 20px; justify-content: center;">
                         <button class="btn btn-primary" style="padding: 20px 30px; font-size: 16px;" @click="startQrLogin">
                             <div style="font-size: 32px; margin-bottom: 10px;">📱</div>
                             <div>扫码登录</div>
@@ -1053,6 +1093,8 @@
                     // Login Modal (QR + Phone)
                     showQrModal: false,
                     loginMode: 'select', // 'select', 'qr', 'phone'
+                    loginProxyMode: 'none', // 'none', 'select'
+                    loginProxyId: null,
                     // QR login states
                     qrCode: '',
                     qrStatus: '',
@@ -1429,13 +1471,18 @@
                 // QR Login Methods
                 async generateQr() {
                     try {
-                        const res = await axios.post('/api/accounts/generate-qr', { account_id: this.qrAccountId })
+                        const payload = { account_id: this.qrAccountId }
+                        // 如果选择了代理，添加代理ID
+                        if (this.loginProxyMode === 'select' && this.loginProxyId) {
+                            payload.proxy_id = this.loginProxyId
+                        }
+                        const res = await axios.post('/api/accounts/generate-qr', payload)
                         if (res.data.success) {
                             this.qrCode = res.data.qr_code
                             this.qrStatus = 'waiting'
                             this.qrRemaining = 30
                             this.startQrPolling()
-                            this.addLog('生成二维码', this.qrAccountId)
+                            this.addLog('生成二维码', this.qrAccountId + (this.loginProxyId ? ` (代理: ${this.loginProxyId})` : ''))
                         } else {
                             this.qrStatus = 'error'
                             this.qrError = res.data.error || '生成失败'
@@ -1517,13 +1564,18 @@
                     try {
                         // 组合完整的手机号（国家代码+手机号）
                         const fullPhone = '+' + this.phoneData.countryCode + this.phoneData.phone
-                        const res = await axios.post('/api/accounts/send-code', {
+                        const payload = {
                             account_id: this.phoneAccountId,
                             phone: fullPhone
-                        })
+                        }
+                        // 如果选择了代理，添加代理ID
+                        if (this.loginProxyMode === 'select' && this.loginProxyId) {
+                            payload.proxy_id = this.loginProxyId
+                        }
+                        const res = await axios.post('/api/accounts/send-code', payload)
                         if (res.data.success) {
                             this.phoneStep = 'code'
-                            this.addLog('发送验证码', fullPhone)
+                            this.addLog('发送验证码', fullPhone + (this.loginProxyId ? ` (代理: ${this.loginProxyId})` : ''))
                         } else {
                             this.phoneError = res.data.error || '发送失败'
                         }
