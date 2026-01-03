@@ -650,12 +650,6 @@ in the Software without restriction...
 
 ---
 
-## 📊 项目统计
-
-![Repo Beats](https://repobeats.axiom.co/api/embed/you922/telegram-mcp/svg)
-
----
-
 ## 🔗 相关链接
 
 - 📖 [MCP 协议规范](https://modelcontextprotocol.io/)
