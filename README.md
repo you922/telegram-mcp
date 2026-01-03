@@ -55,13 +55,7 @@
 
 ## 💡 灵感来源
 
-本项目灵感来自 **KT智能拓客** - 专业的 Telegram 营销管理平台
-
-| 项目 | 说明 |
-|------|------|
-| 🌐 **官网** | https://ktfy8888.com |
-| 💬 **客服** | https://t.me/ktfy8888 |
-| 🎁 **免费试用** | **新用户免费使用三天，功能齐全** |
+本项目灵感来自 **KT智能拓客** - [官网](https://ktfy8888.com) | [客服](https://t.me/ktfy8888)
 
 ---
 
@@ -678,13 +672,7 @@ in the Software without restriction...
 
 ---
 
-## 💬 灵感来源 - KT智能拓客
-
-| 项目 | 说明 |
-|------|------|
-| 🌐 **官网** | [https://ktfy8888.com](https://ktfy8888.com) |
-| 💬 **Telegram 客服** | [@ktfy8888](https://t.me/ktfy8888) |
-| 🎁 **免费试用** | **新用户免费使用三天，功能齐全** |
+**灵感来源:** [KT智能拓客](https://ktfy8888.com) | [@ktfy8888](https://t.me/ktfy8888)
 
 ---
 
