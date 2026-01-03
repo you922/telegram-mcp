@@ -976,29 +976,9 @@
         <div v-if="showTemplateModal" class="modal" @click.self="showTemplateModal = false">
             <div class="modal-content" style="text-align: left; min-width: 500px;">
                 <h2 style="text-align: center; margin-bottom: 20px;">💬 添加消息模板</h2>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>模板名称</label>
-                        <input v-model="newTemplate.name" class="form-control" placeholder="早安问候">
-                    </div>
-                    <div class="form-group">
-                        <label>分类</label>
-                        <select v-model="newTemplate.category" class="form-control">
-                            <option value="问候">问候</option>
-                            <option value="通知">通知</option>
-                            <option value="营销">营销</option>
-                            <option value="客服">客服</option>
-                            <option value="其他">其他</option>
-                        </select>
-                    </div>
-                </div>
                 <div class="form-group">
                     <label>消息内容</label>
-                    <textarea v-model="newTemplate.content" class="form-control" rows="4" placeholder="输入消息内容...支持使用 {name} {time} 等变量"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>变量（逗号分隔）</label>
-                    <input v-model="newTemplate.variablesStr" class="form-control" placeholder="name, time, date">
+                    <textarea v-model="newTemplate.content" class="form-control" rows="6" placeholder="请输入消息内容...支持使用 {name} {time} 等变量"></textarea>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button class="btn btn-outline" @click="showTemplateModal = false">取消</button>
@@ -1307,7 +1287,7 @@
                     // Template Modal
                     showTemplateModal: false,
                     templates: [],
-                    newTemplate: { name: '', category: '问候', content: '', variablesStr: '' },
+                    newTemplate: { content: '' },
 
                     // Schedule Modal
                     showScheduleModal: false,
@@ -1801,23 +1781,14 @@
 
                 // Templates
                 async addTemplate() {
-                    const variables = this.newTemplate.variablesStr
-                        ? this.newTemplate.variablesStr.split(',').map(v => v.trim()).filter(v => v)
-                        : []
-                    const name = this.newTemplate.name || ('模板' + (this.templates.length + 1))
-                    const template_id = 'tpl_' + Date.now()
                     try {
                         await axios.post('/api/templates', {
-                            template_id,
-                            name,
-                            content: this.newTemplate.content,
-                            category: this.newTemplate.category,
-                            variables
+                            content: this.newTemplate.content
                         })
                         this.showToast('模板添加成功')
-                        this.addLog('添加模板', name)
+                        this.addLog('添加模板', this.newTemplate.content.substring(0, 30) + '...')
                         this.showTemplateModal = false
-                        this.newTemplate = { name: '', category: '问候', content: '', variablesStr: '' }
+                        this.newTemplate = { content: '' }
                         await this.loadTemplates()
                     } catch (e) {
                         this.showToast(e.response?.data?.detail || '添加失败', true)

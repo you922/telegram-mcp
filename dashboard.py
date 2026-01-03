@@ -567,14 +567,32 @@ async def list_templates(category: Optional[str] = None):
 @app.post("/api/templates")
 async def add_template(request: dict):
     """添加消息模板"""
-    template_id = request.get("template_id")
-    name = request.get("name")
     content = request.get("content")
-    category = request.get("category", "general")
-    variables = request.get("variables", [])
 
-    if not template_id or not name or not content:
-        raise HTTPException(status_code=400, detail="缺少必要参数")
+    # 如果只传了 content，自动生成其他字段
+    if content and not request.get("template_id") and not request.get("name"):
+        import re
+        import time
+
+        # 自动生成模板ID（使用时间戳）
+        template_id = f"template_{int(time.time() * 1000) % 1000000}"
+
+        # 自动提取变量
+        variables = list(set(re.findall(r'\{(\w+)\}', content)))
+
+        # 自动生成名称（取前20个字符）
+        name = content[:20] + ("..." if len(content) > 20 else "")
+
+        # 自动分类
+        category = "general"
+    else:
+        template_id = request.get("template_id")
+        name = request.get("name")
+        category = request.get("category", "general")
+        variables = request.get("variables", [])
+
+    if not content:
+        raise HTTPException(status_code=400, detail="缺少消息内容")
 
     success = template_manager.add_template(
         template_id, name, content, category, variables
