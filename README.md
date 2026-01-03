@@ -1,18 +1,43 @@
 <div align="center">
 
-# Telegram MCP Complete
+# 🚀 Telegram MCP Complete
 
+**AI 驱动的 Telegram 自动化平台 | 117+ MCP 工具 | Web Dashboard | 多账号管理**
+
+[![GitHub stars](https://img.shields.io/github/stars/yourusername/telegram-mcp-complete?style=social)](https://github.com/yourusername/telegram-mcp-complete/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/yourusername/telegram-mcp-complete?style=social)](https://github.com/yourusername/telegram-mcp-complete/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/yourusername/telegram-mcp-complete)](https://github.com/yourusername/telegram-mcp-complete/issues)
+[![GitHub license](https://img.shields.io/github/license/yourusername/telegram-mcp-complete)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Protocol-orange.svg)](https://modelcontextprotocol.io/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![Telethon](https://img.shields.io/badge/Telethon-1.34+-red.svg)](https://github.com/LonamiWebs/Telethon)
 
-**功能完整的 Telegram MCP 服务器 + 可视化管理后台**
+[![codecov](https://codecov.io/gh/yourusername/telegram-mcp-complete/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/telegram-mcp-complete)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-支持 AI 通过 117+ 工具操作 Telegram，同时提供 Web Dashboard 进行可视化管理
+---
 
-[功能特性](#-核心特性) • [快速开始](#-快速开始) • [文档](#-文档) • [截图](#-界面预览)
+**🤖 功能完整的 Telegram MCP 服务器 + 🌐 可视化管理后台**
+
+✨ 支持 AI 通过 117+ 工具操作 Telegram | 📱 二维码 + 手机号登录（177 国）| 🔄 代理管理 | 📊 健康监控
+
+[功能特性](#-核心特性) • [快速开始](#-快速开始) • [文档](#-文档) • [截图](#-界面预览) • [FAQ](#-常见问题)
+
+[📖 文档](#-文档) • [💬 讨论](https://github.com/yourusername/telegram-mcp-complete/discussions) • [🐛 报告问题](https://github.com/yourusername/telegram-mcp-complete/issues) • [📢 更新日志](CHANGELOG.md)
 
 </div>
+
+## 🌟 关键特性
+
+> 🔥 **为什么选择 Telegram MCP Complete?**
+> - 🚀 **117+ MCP 工具** - 覆盖 Telegram 所有常用操作，AI 像真人一样操作
+> - 🌐 **Web Dashboard** - 可视化界面，无需编程即可管理
+> - 📱 **双登录模式** - 二维码扫描 + 手机号验证码（支持 177 个国家）
+> - 🔐 **安全可靠** - 本地存储，2FA 支持，代理保护
+> - 🔄 **自动化** - 定时任务、消息模板、批量操作
+> - 🐳 **Docker 支持** - 一键部署，开箱即用
 
 ---
 
@@ -413,9 +438,19 @@ A: Dashboard 用于可视化管理，MCP 工具供 AI 调用。两者共享同�
 
 ---
 
-## 贡献
+## 🤝 贡献指南
 
-欢迎提交 Issue 和 Pull Request！
+我们欢迎所有形式的贡献！无论是新功能、Bug 修复、文档改进，还是报告问题。
+
+### 如何贡献?
+
+1. 🍴 Fork 本仓库
+2. 🌟 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 💾 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 📤 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 🔀 开启 Pull Request
+
+详细贡献指南请查看 [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ### 开发环境设置
 
@@ -433,28 +468,78 @@ pip install -r requirements.txt
 
 # 运行测试
 pytest tests/
+
+# 代码格式化
+black .
 ```
 
 ---
 
-## 许可证
+## 📜 许可证
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
+本项目采用 [MIT License](LICENSE) 开源协议。
+
+```
+MIT License
+
+Copyright (c) 2026 Telegram MCP Complete Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction...
+```
 
 ---
 
-## 致谢
+## 🙏 致谢
 
-- [Telethon](https://github.com/LonamiWebs/Telethon) - Telegram 客户端库
-- [FastMCP](https://github.com/jlowin/fastmcp) - MCP 框架
-- [FastAPI](https://fastapi.tiangolo.com/) - Web 框架
+感谢以下开源项目：
+
+- [Telethon](https://github.com/LonamiWebs/Telethon) - 强大的 Telegram 客户端库
+- [FastMCP](https://github.com/jlowin/fastmcp) - MCP 协议框架
+- [FastAPI](https://fastapi.tiangolo.com/) - 现代 Web 框架
+- [Vue.js](https://vuejs.org/) - 渐进式前端框架
+- [Claude Code](https://claude.ai/code) - AI 驱动的开发工具
+
+---
+
+## 📊 项目统计
+
+![Alt](https://repobeats.axiom.co/api/embed/yourusername/telegram-mcp-complete.svg)
+
+---
+
+## 🔗 相关链接
+
+- [MCP 协议规范](https://modelcontextprotocol.io/)
+- [Telegram API 文档](https://core.telegram.org/api)
+- [Claude Code 文档](https://claude.ai/code/docs)
+- [Telethon 文档](https://docs.telethon.dev/)
+
+---
+
+## ⭐ Star 历史
+
+[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/telegram-mcp-complete&type=Date)](https://star-history.com/#yourusername/telegram-mcp-complete&Date)
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for AI-powered Telegram automation**
+**如果这个项目对你有帮助，请给一个 ⭐️ Star!**
 
-[⭐ Star](https://github.com/yourusername/telegram-mcp-complete) • [🍴 Fork](https://github.com/yourusername/telegram-mcp-complete/fork) • [🐛 Report Bug](https://github.com/yourusername/telegram-mcp-complete/issues)
+Made with ❤️ by [Telegram MCP Complete](https://github.com/yourusername/telegram-mcp-complete)
+
+[⭐ Star](https://github.com/yourusername/telegram-mcp-complete) • [🍴 Fork](https://github.com/yourusername/telegram-mcp-complete/fork) • [🐛 报告问题](https://github.com/yourusername/telegram-mcp-complete/issues) • [💬 讨论](https://github.com/yourusername/telegram-mcp-complete/discussions) • [📖 文档](docs/)
+
+---
+
+**[🔝 返回顶部](#-telegram-mcp-complete)**
 
 </div>
+
+---
+
+## 🏷️ 关键词
+
+Telegram, MCP, Model Context Protocol, AI, Claude, Claude Code, 自动化, Bot, 机器人, 多账号, Dashboard, Web Dashboard, FastAPI, Telethon, Python, Docker, 代理, 二维码登录, 手机号登录, 定时任务, 批量操作, 消息模板, 健康监控, 开源, Open Source
