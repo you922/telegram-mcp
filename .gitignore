@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Telegram Session (包含敏感信息，不要提交)
+.telegram_session
+*.session
+telegram_session.txt
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Playwright
+.playwright/
+
+# Logs
+*.log
+mcp_errors.log
+
+# 账号数据（包含敏感 Session）
+accounts/config.json
+accounts/*.json
+!accounts/.gitkeep
+
+# Dashboard 日志
+dashboard.log
+
+# 测试覆盖率
+.coverage
+htmlcov/
+.pytest_cache/

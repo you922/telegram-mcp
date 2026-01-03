@@ -1,0 +1,14 @@
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+aiohttp>=3.9.0
+pydantic>=2.0.0
+
+# 原有依赖
+telethon>=1.42.0
+python-dotenv>=1.0.0
+nest-asyncio>=1.5.8
+qrcode>=7.4.0
+pillow>=10.0.0
+flask>=2.3.0
+flask-cors>=4.0.0

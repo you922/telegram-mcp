@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram 多账号管理</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .header h1 { font-size: 22px; display: flex; align-items: center; gap: 10px; }
+        .header-stats { display: flex; gap: 25px; font-size: 14px; }
+        .header-stats span { display: flex; align-items: center; gap: 6px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 25px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px;
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .tab:hover { background: rgba(255,255,255,0.1); }
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .card-header h3 { font-size: 18px; color: #fff; }
+        .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #219a52; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #667eea;
+            color: #667eea;
+        }
+        .btn-outline:hover { background: rgba(102,126,234,0.1); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { color: #999; font-weight: 500; font-size: 12px; text-transform: uppercase; }
+        tr:hover { background: rgba(255,255,255,0.03); }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-success { background: rgba(39,174,96,0.2); color: #27ae60; }
+        .badge-danger { background: rgba(231,76,60,0.2); color: #e74c3c; }
+        .badge-warning { background: rgba(243,156,18,0.2); color: #f39c12; }
+        .badge-info { background: rgba(52,152,219,0.2); color: #3498db; }
+        .badge-premium { background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,140,0,0.3)); color: #ffd700; }
+        .badge-normal { background: rgba(150,150,150,0.2); color: #999; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: #999; }
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .form-control:focus { outline: none; border-color: #667eea; }
+        .form-control::placeholder { color: #666; }
+        .form-row { display: flex; gap: 15px; }
+        .form-row .form-group { flex: 1; }
+        select.form-control { cursor: pointer; }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            min-width: 420px;
+            max-width: 90vw;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-content h2 { margin-bottom: 8px; }
+        .modal-content .subtitle { color: #999; margin-bottom: 25px; font-size: 14px; }
+        .qr-container {
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 20px;
+            background: white;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .qr-container img { width: 100%; height: 100%; object-fit: contain; }
+        .qr-placeholder { color: #333; font-size: 14px; }
+        .timer {
+            font-size: 56px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 15px 0;
+        }
+        .timer.warning { background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%); -webkit-background-clip: text; }
+        .status-text { font-size: 16px; margin: 10px 0 20px; }
+        .status-waiting { color: #f39c12; }
+        .status-success { color: #27ae60; }
+        .status-timeout { color: #e74c3c; }
+        .status-error { color: #e74c3c; }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-label { font-size: 13px; color: #999; margin-top: 5px; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 15px; }
+
+        /* Proxy card */
+        .proxy-item {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .proxy-info h4 { margin-bottom: 4px; font-size: 15px; }
+        .proxy-info p { font-size: 13px; color: #999; }
+        .proxy-actions { display: flex; gap: 8px; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            border-radius: 10px;
+            background: #27ae60;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+            z-index: 2000;
+        }
+        .toast.error { background: #e74c3c; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(102,126,234,0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Log item */
+        .log-item {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .log-item .time { color: #666; }
+        .log-item .action { color: #667eea; }
+        .log-item .account { color: #f39c12; }
+
+        /* Export Modal */
+        .export-content {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            margin: 15px 0;
+        }
+
+        /* 点击复制样式 */
+        .copyable-account-id {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: 1px solid transparent;
+        }
+        .copyable-account-id:hover {
+            background: rgba(103, 126, 234, 0.15);
+            border-color: rgba(103, 126, 234, 0.3);
+        }
+        .copyable-account-id:active {
+            transform: scale(0.98);
+        }
+        .copyable-account-id .copy-icon {
+            width: 14px;
+            height: 14px;
+            opacity: 0.4;
+            transition: opacity 0.2s;
+        }
+        .copyable-account-id:hover .copy-icon {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>📱 Telegram 多账号管理</h1>
+            <div class="header-stats">
+                <span>📊 总账号: {{ accounts.length }}</span>
+                <span>🟢 在线: {{ onlineCount }}</span>
+                <span>🔴 离线: {{ offlineCount }}</span>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="tabs">
+                <div class="tab" :class="{ active: tab === 'accounts' }" @click="tab = 'accounts'">👥 账号管理</div>
+                <div class="tab" :class="{ active: tab === 'proxies' }" @click="tab = 'proxies'">🌐 代理设置</div>
+                <div class="tab" :class="{ active: tab === 'health' }" @click="tab = 'health'">💊 健康监控</div>
+                <div class="tab" :class="{ active: tab === 'stats' }" @click="tab = 'stats'">📊 使用统计</div>
+                <div class="tab" :class="{ active: tab === 'logs' }" @click="tab = 'logs'">📋 操作日志</div>
+                <div class="tab" :class="{ active: tab === 'templates' }" @click="tab = 'templates'">💬 消息模板</div>
+                <div class="tab" :class="{ active: tab === 'schedule' }" @click="tab = 'schedule'">📅 定时计划</div>
+            </div>
+
+            <!-- 账号管理 -->
+            <div v-show="tab === 'accounts'">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>账号列表</h3>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-outline" @click="showExportAllModal = true" :disabled="accounts.length === 0">📤 导出全部</button>
+                            <button class="btn btn-outline" @click="showImportModal = true">📥 导入Session</button>
+                            <button class="btn btn-primary" @click="openQrModal">➕ 添加账号</button>
+                        </div>
+                    </div>
+
+                    <div v-if="accounts.length === 0" class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>暂无账号，点击上方按钮添加</p>
+                    </div>
+
+                    <table v-else>
+                        <thead>
+                            <tr>
+                                <th>账号ID</th>
+                                <th>名字</th>
+                                <th>用户名</th>
+                                <th>用户号</th>
+                                <th>类型</th>
+                                <th>状态</th>
+                                <th>上次在线</th>
+                                <th>使用次数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="acc in accounts" :key="acc.account_id">
+                                <td>
+                                    <span
+                                        @click="copyAccountId(acc.account_id)"
+                                        :title="'点击复制: ' + acc.account_id"
+                                        style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; transition: all 0.2s;"
+                                        @mouseover="$event.target.style.background='rgba(103, 126, 234, 0.1)'"
+                                        @mouseout="$event.target.style.background='transparent'"
+                                    >
+                                        <strong>{{ acc.account_id }}</strong>
+                                        <svg style="width: 14px; height: 14px; opacity: 0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                    </span>
+                                </td>
+                                <td>{{ acc.first_name || '-' }} {{ acc.last_name || '' }}</td>
+                                <td>
+                                    <a v-if="acc.username && acc.username !== 'N/A'" 
+                                       :href="'https://t.me/' + acc.username" 
+                                       target="_blank" 
+                                       style="color: #667eea; text-decoration: none;">
+                                        @{{ acc.username }}
+                                    </a>
+                                    <span v-else>-</span>
+                                </td>
+                                <td>{{ acc.user_id || '-' }}</td>
+                                <td>
+                                    <span class="badge" :class="acc.is_premium ? 'badge-premium' : 'badge-normal'">
+                                        {{ acc.is_premium ? '⭐ 会员' : '普通' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge" :class="acc.status === 'online' ? 'badge-success' : 'badge-danger'">
+                                        {{ acc.status === 'online' ? '在线' : '离线' }}
+                                    </span>
+                                </td>
+                                <td>{{ formatTime(acc.last_online) }}</td>
+                                <td>{{ acc.use_count || 0 }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline" @click="exportSession(acc.account_id)">导出</button>
+                                    <button class="btn btn-sm btn-danger" @click="deleteAccount(acc.account_id)">删除</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 代理设置 -->
+            <div v-show="tab === 'proxies'">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🌍 全局代理</h3>
+                    </div>
+                    <div v-if="globalProxy && globalProxy.host" class="proxy-item">
+                        <div class="proxy-info">
+                            <h4>{{ globalProxy.protocol.toUpperCase() }}</h4>
+                            <p>{{ globalProxy.host }}:{{ globalProxy.port }}</p>
+                        </div>
+                        <div class="proxy-actions">
+                            <button class="btn btn-sm btn-success" @click="testGlobalProxy" :disabled="testing">
+                                {{ testing ? '测试中...' : '测试' }}
+                            </button>
+                            <button class="btn btn-sm btn-danger" @click="removeGlobalProxy">移除</button>
+                        </div>
+                    </div>
+                    <div v-else>
+                        <p style="color: #999; margin-bottom: 15px;">设置全局代理后，所有账号默认使用此代理连接Telegram</p>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>协议</label>
+                                <select v-model="newGlobal.protocol" class="form-control">
+                                    <option value="socks5">SOCKS5</option>
+                                    <option value="http">HTTP</option>
+                                    <option value="https">HTTPS</option>
+                                    <option value="socks4">SOCKS4</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>主机地址</label>
+                                <input v-model="newGlobal.host" class="form-control" placeholder="127.0.0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>端口</label>
+                                <input v-model.number="newGlobal.port" type="number" class="form-control" placeholder="1080">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>用户名 (可选)</label>
+                                <input v-model="newGlobal.username" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>密码 (可选)</label>
+                                <input v-model="newGlobal.password" type="password" class="form-control">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" @click="setGlobalProxy" :disabled="!newGlobal.host || !newGlobal.port">
+                            设置全局代理
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🔌 独立代理</h3>
+                    </div>
+                    <p style="color: #999; margin-bottom: 15px;">为特定账号设置独立代理，优先级高于全局代理</p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>代理名称</label>
+                            <input v-model="newProxy.id" class="form-control" placeholder="proxy1">
+                        </div>
+                        <div class="form-group">
+                            <label>协议</label>
+                            <select v-model="newProxy.protocol" class="form-control">
+                                <option value="socks5">SOCKS5</option>
+                                <option value="http">HTTP</option>
+                                <option value="https">HTTPS</option>
+                                <option value="socks4">SOCKS4</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>主机地址</label>
+                            <input v-model="newProxy.host" class="form-control" placeholder="192.168.1.100">
+                        </div>
+                        <div class="form-group">
+                            <label>端口</label>
+                            <input v-model.number="newProxy.port" type="number" class="form-control" placeholder="1080">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" @click="addProxy" :disabled="!newProxy.id || !newProxy.host || !newProxy.port">
+                        添加代理
+                    </button>
+
+                    <div v-if="proxies.length > 0" style="margin-top: 25px;">
+                        <div v-for="proxy in proxies" :key="proxy.proxy_id" class="proxy-item">
+                            <div class="proxy-info">
+                                <h4>{{ proxy.proxy_id }} <span class="badge badge-warning">{{ proxy.protocol.toUpperCase() }}</span></h4>
+                                <p>{{ proxy.host }}:{{ proxy.port }}</p>
+                            </div>
+                            <div class="proxy-actions">
+                                <button class="btn btn-sm btn-success" @click="testProxy(proxy.proxy_id)">测试</button>
+                                <button class="btn btn-sm btn-danger" @click="deleteProxy(proxy.proxy_id)">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 健康监控 -->
+            <div v-show="tab === 'health'">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ health.total_accounts || 0 }}</div>
+                        <div class="stat-label">总账号数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="-webkit-text-fill-color: #27ae60;">{{ health.online_accounts || 0 }}</div>
+                        <div class="stat-label">在线账号</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="-webkit-text-fill-color: #e74c3c;">{{ health.high_risk || 0 }}</div>
+                        <div class="stat-label">高风险</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="-webkit-text-fill-color: #f39c12;">{{ health.medium_risk || 0 }}</div>
+                        <div class="stat-label">中风险</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>⚠️ 风险账号</h3>
+                        <button class="btn btn-outline btn-sm" @click="loadHealth">🔄 刷新</button>
+                    </div>
+                    <div v-if="!riskAccounts.length" class="empty-state">
+                        <div class="icon">✅</div>
+                        <p>所有账号健康状态良好</p>
+                    </div>
+                    <table v-else>
+                        <thead>
+                            <tr><th>账号ID</th><th>风险等级</th><th>连续失败</th><th>状态</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="id in riskAccounts" :key="id">
+                                <td>{{ id }}</td>
+                                <td><span class="badge badge-warning">{{ healthDetails[id]?.risk_level || '中' }}</span></td>
+                                <td>{{ healthDetails[id]?.consecutive_fails || 0 }}</td>
+                                <td><span class="badge" :class="healthDetails[id]?.banned ? 'badge-danger' : 'badge-warning'">
+                                    {{ healthDetails[id]?.banned ? '可能被封' : '需关注' }}
+                                </span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 使用统计 -->
+            <div v-show="tab === 'stats'">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ stats.total_uses || 0 }}</div>
+                        <div class="stat-label">总使用次数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ stats.total_messages_sent || 0 }}</div>
+                        <div class="stat-label">消息发送总数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ stats.today_uses || 0 }}</div>
+                        <div class="stat-label">今日使用</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ stats.today_messages || 0 }}</div>
+                        <div class="stat-label">今日消息</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>🏆 最活跃账号</h3></div>
+                    <div v-if="!topAccounts.length" class="empty-state">
+                        <div class="icon">📊</div>
+                        <p>暂无统计数据</p>
+                    </div>
+                    <table v-else>
+                        <thead><tr><th>排名</th><th>账号ID</th><th>使用次数</th></tr></thead>
+                        <tbody>
+                            <tr v-for="(acc, i) in topAccounts" :key="acc.account_id">
+                                <td>🏅 #{{ i + 1 }}</td>
+                                <td>{{ acc.account_id }}</td>
+                                <td>{{ acc.value }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 操作日志 -->
+            <div v-show="tab === 'logs'">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📋 操作日志</h3>
+                        <button class="btn btn-outline btn-sm" @click="clearLogs">清空</button>
+                    </div>
+                    <div v-if="!logs.length" class="empty-state">
+                        <div class="icon">📝</div>
+                        <p>暂无操作记录</p>
+                    </div>
+                    <div v-else>
+                        <div v-for="(log, i) in logs" :key="i" class="log-item">
+                            <span><span class="action">{{ log.action }}</span> - <span class="account">{{ log.account }}</span> {{ log.detail }}</span>
+                            <span class="time">{{ log.time }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 消息模板 -->
+            <div v-show="tab === 'templates'">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>💬 消息模板</h3>
+                        <button class="btn btn-primary" @click="showTemplateModal = true">➕ 添加模板</button>
+                    </div>
+                    <p style="color: #999; margin-bottom: 20px;">预设常用消息模板，AI可以直接调用发送</p>
+                    
+                    <div v-if="!templates.length" class="empty-state">
+                        <div class="icon">💬</div>
+                        <p>暂无消息模板</p>
+                    </div>
+                    
+                    <div v-else>
+                        <div v-for="(tpl, i) in templates" :key="i" class="proxy-item" style="flex-direction: column; align-items: flex-start;">
+                            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+                                <div>
+                                    <h4 style="margin-bottom: 4px;">{{ tpl.name }} <span class="badge badge-info">{{ tpl.category }}</span></h4>
+                                </div>
+                                <div class="proxy-actions">
+                                    <button class="btn btn-sm btn-outline" @click="copyTemplate(tpl)">复制</button>
+                                    <button class="btn btn-sm btn-danger" @click="deleteTemplate(i)">删除</button>
+                                </div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; width: 100%; font-size: 13px; white-space: pre-wrap;">{{ tpl.content }}</div>
+                            <div v-if="tpl.variables && tpl.variables.length" style="margin-top: 8px; font-size: 12px; color: #999;">
+                                变量: {{ tpl.variables.join(', ') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快捷模板 -->
+                <div class="card">
+                    <div class="card-header"><h3>🚀 快捷模板</h3></div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <button class="btn btn-outline btn-sm" @click="addQuickTemplate('问候', '你好！很高兴认识你 👋')">👋 问候</button>
+                        <button class="btn btn-outline btn-sm" @click="addQuickTemplate('感谢', '非常感谢你的帮助！🙏')">🙏 感谢</button>
+                        <button class="btn btn-outline btn-sm" @click="addQuickTemplate('确认', '好的，收到！✅')">✅ 确认</button>
+                        <button class="btn btn-outline btn-sm" @click="addQuickTemplate('稍等', '请稍等，我马上处理 ⏳')">⏳ 稍等</button>
+                        <button class="btn btn-outline btn-sm" @click="addQuickTemplate('完成', '已经完成了！🎉')">🎉 完成</button>
+                        <button class="btn btn-outline btn-sm" @click="addQuickTemplate('再见', '再见，祝你有美好的一天！👋')">👋 再见</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 定时计划 -->
+            <div v-show="tab === 'schedule'">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📅 定时计划</h3>
+                        <button class="btn btn-primary" @click="showScheduleModal = true">➕ 添加计划</button>
+                    </div>
+                    <p style="color: #999; margin-bottom: 20px;">查看和管理AI设置的定时任务</p>
+                    
+                    <div v-if="!schedules.length" class="empty-state">
+                        <div class="icon">📅</div>
+                        <p>暂无定时计划</p>
+                        <p style="font-size: 13px; margin-top: 10px;">告诉AI"每天早上9点发送问候"即可创建定时任务</p>
+                    </div>
+                    
+                    <div v-else>
+                        <div v-for="(sch, i) in schedules" :key="i" class="proxy-item">
+                            <div class="proxy-info" style="flex: 1;">
+                                <h4>
+                                    {{ sch.name }}
+                                    <span class="badge" :class="sch.enabled ? 'badge-success' : 'badge-danger'">
+                                        {{ sch.enabled ? '启用' : '禁用' }}
+                                    </span>
+                                </h4>
+                                <p>{{ sch.description }}</p>
+                                <p style="margin-top: 5px;">
+                                    <span class="badge badge-info">{{ sch.cron || sch.time }}</span>
+                                    <span style="margin-left: 10px; color: #666;">账号: {{ sch.accounts?.join(', ') || '全部' }}</span>
+                                </p>
+                                <p v-if="sch.lastRun" style="font-size: 12px; color: #666; margin-top: 5px;">
+                                    上次执行: {{ formatTime(sch.lastRun) }}
+                                </p>
+                            </div>
+                            <div class="proxy-actions">
+                                <button class="btn btn-sm" :class="sch.enabled ? 'btn-warning' : 'btn-success'" @click="toggleSchedule(i)">
+                                    {{ sch.enabled ? '禁用' : '启用' }}
+                                </button>
+                                <button class="btn btn-sm btn-danger" @click="deleteSchedule(i)">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 计划统计 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ schedules.length }}</div>
+                        <div class="stat-label">总计划数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="-webkit-text-fill-color: #27ae60;">{{ schedules.filter(s => s.enabled).length }}</div>
+                        <div class="stat-label">启用中</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="-webkit-text-fill-color: #f39c12;">{{ todayExecutions }}</div>
+                        <div class="stat-label">今日已执行</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="-webkit-text-fill-color: #3498db;">{{ pendingExecutions }}</div>
+                        <div class="stat-label">待执行</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR/Phone Login Modal -->
+        <div v-if="showQrModal" class="modal" @click.self="closeQrModal">
+            <div class="modal-content" style="min-width: 450px;">
+                <!-- 登录模式选择 -->
+                <div v-if="loginMode === 'select'" style="text-align: center;">
+                    <h2>添加账号</h2>
+                    <p class="subtitle">选择登录方式</p>
+                    <div style="display: flex; gap: 15px; margin-top: 30px; justify-content: center;">
+                        <button class="btn btn-primary" style="padding: 20px 30px; font-size: 16px;" @click="startQrLogin">
+                            <div style="font-size: 32px; margin-bottom: 10px;">📱</div>
+                            <div>扫码登录</div>
+                            <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">快速便捷</div>
+                        </button>
+                        <button class="btn btn-outline" style="padding: 20px 30px; font-size: 16px;" @click="startPhoneLogin">
+                            <div style="font-size: 32px; margin-bottom: 10px;">📞</div>
+                            <div>手机号登录</div>
+                            <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">支持国际号码</div>
+                        </button>
+                    </div>
+                    <button class="btn btn-outline" @click="closeQrModal" style="margin-top: 25px;">取消</button>
+                </div>
+
+                <!-- 二维码登录 -->
+                <div v-else-if="loginMode === 'qr'">
+                    <h2 style="cursor: pointer;" @click="loginMode = 'select'">⬅ 扫码登录</h2>
+                    <p class="subtitle">使用 Telegram 扫描二维码添加账号</p>
+
+                    <div class="qr-container">
+                        <img v-if="qrCode" :src="qrCode" alt="QR Code">
+                        <div v-else class="qr-placeholder">
+                            <span class="loading"></span>
+                        </div>
+                    </div>
+
+                    <div v-if="qrStatus === 'waiting'">
+                        <div class="timer" :class="{ warning: qrRemaining <= 10 }">{{ Math.max(0, Math.floor(qrRemaining)) }}s</div>
+                        <p class="status-text status-waiting">等待扫码中...</p>
+                        <button class="btn btn-primary" @click="refreshQr" style="margin-top: 10px;">🔄 刷新二维码</button>
+                    </div>
+
+                    <div v-else-if="qrStatus === 'success'">
+                        <p class="status-text status-success" style="font-size: 24px;">✅ 登录成功！</p>
+                    </div>
+
+                    <div v-else-if="qrStatus === 'timeout'">
+                        <p class="status-text status-timeout">⏱️ 二维码已过期</p>
+                        <button class="btn btn-primary" @click="refreshQr" style="margin-top: 10px;">🔄 刷新二维码</button>
+                    </div>
+
+                    <div v-else-if="qrStatus === 'need_password'">
+                        <p class="status-text" style="color: #3498db;">🔐 此账号开启了两步验证</p>
+                        <div class="form-group" style="margin: 20px 0; text-align: left;">
+                            <label style="color: #999;">请输入两步验证密码</label>
+                            <input v-model="twoFaPassword" type="password" class="form-control" placeholder="输入密码..." @keyup.enter="submit2FA">
+                        </div>
+                        <div v-if="twoFaError" style="color: #e74c3c; margin-bottom: 15px;">{{ twoFaError }}</div>
+                        <button class="btn btn-primary" @click="submit2FA" :disabled="!twoFaPassword || twoFaLoading">
+                            {{ twoFaLoading ? '验证中...' : '提交密码' }}
+                        </button>
+                    </div>
+
+                    <div v-else-if="qrStatus === 'error'">
+                        <p class="status-text status-error">❌ {{ qrError }}</p>
+                        <button class="btn btn-primary" @click="refreshQr" style="margin-top: 10px;">🔄 重试</button>
+                    </div>
+
+                    <button v-if="qrStatus !== 'success' && qrStatus !== 'need_password'" class="btn btn-outline" @click="closeQrModal" style="margin-top: 15px;">关闭</button>
+                    <button v-if="qrStatus === 'need_password'" class="btn btn-outline" @click="closeQrModal" style="margin-top: 15px;">取消登录</button>
+                </div>
+
+                <!-- 手机号登录 -->
+                <div v-else-if="loginMode === 'phone'">
+                    <h2 style="cursor: pointer;" @click="loginMode = 'select'">⬅ 手机号登录</h2>
+                    <p class="subtitle">支持所有国际手机号</p>
+
+                    <!-- 步骤1: 选择地区+输入手机号 -->
+                    <div v-if="phoneStep === 'input'">
+                        <!-- 地区选择器 -->
+                        <div class="form-group" style="margin: 20px 0; text-align: left;">
+                            <label style="color: #999;">选择国家/地区</label>
+                            <input v-model="countrySearch" class="form-control" placeholder="🔍 搜索国家/地区..." style="margin-bottom: 10px;">
+                            <select v-model="phoneData.countryCode" class="form-control" style="margin-bottom: 10px;">
+                                <option value="">-- 选择国家/地区 --</option>
+                                <option v-for="country in filteredCountries" :key="country.code" :value="country.code">
+                                    {{ country.flag }} {{ country.name }} (+{{ country.code }})
+                                </option>
+                            </select>
+                            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                <button v-for="c in popularCountries" :key="c.code" @click="phoneData.countryCode = c.code"
+                                    class="btn btn-sm"
+                                    :class="phoneData.countryCode === c.code ? 'btn-primary' : 'btn-outline'"
+                                    style="padding: 4px 8px; font-size: 12px;">
+                                    {{ c.flag }} +{{ c.code }}
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 手机号输入 -->
+                        <div class="form-group" style="margin: 15px 0; text-align: left;">
+                            <label style="color: #999;">手机号</label>
+                            <div style="display: flex; gap: 10px;">
+                                <span style="padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #999; min-width: 70px;">
+                                    {{ phoneData.countryCode ? '+' + phoneData.countryCode : '+???' }}
+                                </span>
+                                <input v-model="phoneData.phone" class="form-control" placeholder="请输入手机号" @keyup.enter="sendPhoneCode" style="flex: 1;">
+                            </div>
+                        </div>
+                        <div v-if="phoneError" style="color: #e74c3c; margin-bottom: 15px;">{{ phoneError }}</div>
+                        <button class="btn btn-primary" @click="sendPhoneCode" :disabled="!phoneData.countryCode || !phoneData.phone || phoneLoading" style="width: 100%;">
+                            {{ phoneLoading ? '发送中...' : '发送验证码' }}
+                        </button>
+                        <button class="btn btn-outline" @click="closeQrModal" style="margin-top: 10px; width: 100%;">取消</button>
+                    </div>
+
+                    <!-- 步骤2: 输入验证码 -->
+                    <div v-else-if="phoneStep === 'code'">
+                        <div class="form-group" style="margin: 20px 0; text-align: left;">
+                            <label style="color: #999;">验证码</label>
+                            <input v-model="phoneData.code" type="text" class="form-control" placeholder="输入验证码..." @keyup.enter="verifyPhoneCode" maxlength="10">
+                            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                                已发送到: +{{ phoneData.countryCode }} {{ phoneData.phone }}
+                            </div>
+                        </div>
+                        <div v-if="phoneError" style="color: #e74c3c; margin-bottom: 15px;">{{ phoneError }}</div>
+                        <button class="btn btn-primary" @click="verifyPhoneCode" :disabled="!phoneData.code || phoneLoading" style="width: 100%;">
+                            {{ phoneLoading ? '验证中...' : '验证' }}
+                        </button>
+                        <button class="btn btn-outline" @click="phoneStep = 'input'" style="margin-top: 10px; width: 100%;">返回</button>
+                    </div>
+
+                    <!-- 步骤3: 输入 2FA 密码 -->
+                    <div v-else-if="phoneStep === '2fa'">
+                        <p class="status-text" style="color: #3498db;">🔐 此账号开启了两步验证</p>
+                        <div class="form-group" style="margin: 20px 0; text-align: left;">
+                            <label style="color: #999;">请输入两步验证密码</label>
+                            <input v-model="phoneData.password" type="password" class="form-control" placeholder="输入密码..." @keyup.enter="submitPhone2FA">
+                        </div>
+                        <div v-if="phoneError" style="color: #e74c3c; margin-bottom: 15px;">{{ phoneError }}</div>
+                        <button class="btn btn-primary" @click="submitPhone2FA" :disabled="!phoneData.password || phoneLoading" style="width: 100%;">
+                            {{ phoneLoading ? '验证中...' : '提交密码' }}
+                        </button>
+                        <button class="btn btn-outline" @click="cancelPhoneLogin" style="margin-top: 10px; width: 100%;">取消</button>
+                    </div>
+
+                    <!-- 登录成功 -->
+                    <div v-else-if="phoneStep === 'success'">
+                        <p class="status-text status-success" style="font-size: 24px;">✅ 登录成功！</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Modal -->
+        <div v-if="showImportModal" class="modal" @click.self="showImportModal = false">
+            <div class="modal-content" style="text-align: left; min-width: 500px;">
+                <h2 style="text-align: center; margin-bottom: 20px;">📥 导入 Session</h2>
+                <div class="form-group">
+                    <label>账号ID</label>
+                    <input v-model="importData.id" class="form-control" placeholder="my_account">
+                </div>
+                <div class="form-group">
+                    <label>Session 字符串</label>
+                    <textarea v-model="importData.session" class="form-control" rows="4" placeholder="粘贴 Session 字符串..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button class="btn btn-outline" @click="showImportModal = false">取消</button>
+                    <button class="btn btn-primary" @click="importSession" :disabled="!importData.id || !importData.session">导入</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Modal -->
+        <div v-if="showExportModal" class="modal" @click.self="showExportModal = false">
+            <div class="modal-content" style="text-align: left; min-width: 500px;">
+                <h2 style="text-align: center; margin-bottom: 20px;">📤 导出 Session</h2>
+                <p style="color: #999; margin-bottom: 10px;">账号: {{ exportData.id }}</p>
+                <div class="export-content">{{ exportData.session }}</div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-outline" @click="showExportModal = false">关闭</button>
+                    <button class="btn btn-primary" @click="copyExport">复制</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export All Modal -->
+        <div v-if="showExportAllModal" class="modal" @click.self="showExportAllModal = false">
+            <div class="modal-content" style="text-align: left; min-width: 600px;">
+                <h2 style="text-align: center; margin-bottom: 20px;">📤 导出全部账号</h2>
+                <div class="export-content" style="max-height: 400px;">{{ exportAllData }}</div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                    <button class="btn btn-outline" @click="showExportAllModal = false">关闭</button>
+                    <button class="btn btn-primary" @click="copyExportAll">复制全部</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Modal -->
+        <div v-if="showTemplateModal" class="modal" @click.self="showTemplateModal = false">
+            <div class="modal-content" style="text-align: left; min-width: 500px;">
+                <h2 style="text-align: center; margin-bottom: 20px;">💬 添加消息模板</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>模板名称</label>
+                        <input v-model="newTemplate.name" class="form-control" placeholder="早安问候">
+                    </div>
+                    <div class="form-group">
+                        <label>分类</label>
+                        <select v-model="newTemplate.category" class="form-control">
+                            <option value="问候">问候</option>
+                            <option value="通知">通知</option>
+                            <option value="营销">营销</option>
+                            <option value="客服">客服</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>消息内容</label>
+                    <textarea v-model="newTemplate.content" class="form-control" rows="4" placeholder="输入消息内容...支持使用 {name} {time} 等变量"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>变量（逗号分隔）</label>
+                    <input v-model="newTemplate.variablesStr" class="form-control" placeholder="name, time, date">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button class="btn btn-outline" @click="showTemplateModal = false">取消</button>
+                    <button class="btn btn-primary" @click="addTemplate" :disabled="!newTemplate.content">添加</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Modal -->
+        <div v-if="showScheduleModal" class="modal" @click.self="showScheduleModal = false">
+            <div class="modal-content" style="text-align: left; min-width: 550px;">
+                <h2 style="text-align: center; margin-bottom: 20px;">📅 添加定时计划</h2>
+                <div class="form-group">
+                    <label>计划名称</label>
+                    <input v-model="newSchedule.name" class="form-control" placeholder="每日早安">
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <input v-model="newSchedule.description" class="form-control" placeholder="每天早上9点发送早安消息">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>执行时间</label>
+                        <input v-model="newSchedule.time" type="time" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>重复</label>
+                        <select v-model="newSchedule.repeat" class="form-control">
+                            <option value="once">仅一次</option>
+                            <option value="daily">每天</option>
+                            <option value="weekly">每周</option>
+                            <option value="workday">工作日</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>执行动作</label>
+                    <select v-model="newSchedule.action" class="form-control">
+                        <option value="send_message">发送消息</option>
+                        <option value="send_template">发送模板</option>
+                        <option value="custom">自定义（AI执行）</option>
+                    </select>
+                </div>
+                <div v-if="newSchedule.action === 'send_message'" class="form-group">
+                    <label>消息内容</label>
+                    <textarea v-model="newSchedule.message" class="form-control" rows="3" placeholder="要发送的消息"></textarea>
+                </div>
+                <div v-if="newSchedule.action === 'send_template'" class="form-group">
+                    <label>选择模板</label>
+                    <select v-model="newSchedule.template_id" class="form-control">
+                        <option v-for="tpl in templates" :key="tpl.template_id || tpl.id" :value="tpl.template_id || tpl.id">{{ tpl.name }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>选择账号</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        <label v-for="acc in accounts" :key="acc.account_id" style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px;">
+                            <input type="checkbox" v-model="newSchedule.accounts" :value="acc.account_id">
+                            {{ acc.account_id }}
+                        </label>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button class="btn btn-outline" @click="showScheduleModal = false">取消</button>
+                    <button class="btn btn-primary" @click="addSchedule" :disabled="!newSchedule.name || !newSchedule.time">添加</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div v-if="toast.show" class="toast" :class="{ error: toast.error }">{{ toast.message }}</div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    tab: 'accounts',
+                    accounts: [],
+                    globalProxy: null,
+                    proxies: [],
+                    health: {},
+                    healthDetails: {},
+                    riskAccounts: [],
+                    stats: {},
+                    topAccounts: [],
+                    testing: false,
+                    logs: [],
+
+                    // Login Modal (QR + Phone)
+                    showQrModal: false,
+                    loginMode: 'select', // 'select', 'qr', 'phone'
+                    // QR login states
+                    qrCode: '',
+                    qrStatus: '',
+                    qrRemaining: 30,
+                    qrError: '',
+                    qrAccountId: '',
+                    qrPolling: null,
+                    twoFaPassword: '',
+                    twoFaError: '',
+                    twoFaLoading: false,
+                    // Phone login states
+                    phoneStep: 'input', // 'input', 'code', '2fa', 'success'
+                    phoneData: { phone: '', code: '', password: '', countryCode: '' },
+                    phoneError: '',
+                    phoneLoading: false,
+                    phoneAccountId: '',
+                    countrySearch: '',
+
+                    // 国家/地区代码数据（去重）
+                    countries: (() => {
+                        const all = [
+                            // 亚洲
+                            { code: '86', name: '中国', flag: '🇨🇳' },
+                            { code: '852', name: '香港', flag: '🇭🇰' },
+                            { code: '853', name: '澳门', flag: '🇲🇴' },
+                            { code: '886', name: '台湾', flag: '🇹🇼' },
+                            { code: '81', name: '日本', flag: '🇯🇵' },
+                            { code: '82', name: '韩国', flag: '🇰🇷' },
+                            { code: '850', name: '朝鲜', flag: '🇰🇵' },
+                            { code: '65', name: '新加坡', flag: '🇸🇬' },
+                            { code: '60', name: '马来西亚', flag: '🇲🇾' },
+                            { code: '66', name: '泰国', flag: '🇹🇭' },
+                            { code: '84', name: '越南', flag: '🇻🇳' },
+                            { code: '62', name: '印尼', flag: '🇮🇩' },
+                            { code: '63', name: '菲律宾', flag: '🇵🇭' },
+                            { code: '855', name: '柬埔寨', flag: '🇰🇭' },
+                            { code: '856', name: '老挝', flag: '🇱🇦' },
+                            { code: '95', name: '缅甸', flag: '🇲🇲' },
+                            { code: '673', name: '文莱', flag: '🇧🇳' },
+                            { code: '91', name: '印度', flag: '🇮🇳' },
+                            { code: '92', name: '巴基斯坦', flag: '🇵🇰' },
+                            { code: '880', name: '孟加拉国', flag: '🇧🇩' },
+                            { code: '94', name: '斯里兰卡', flag: '🇱🇰' },
+                            { code: '93', name: '阿富汗', flag: '🇦🇫' },
+                            { code: '975', name: '不丹', flag: '🇧🇹' },
+                            { code: '977', name: '尼泊尔', flag: '🇳🇵' },
+                            { code: '960', name: '马尔代夫', flag: '🇲🇻' },
+                            { code: '98', name: '伊朗', flag: '🇮🇷' },
+                            { code: '966', name: '沙特', flag: '🇸🇦' },
+                            { code: '971', name: '阿联酋', flag: '🇦🇪' },
+                            { code: '968', name: '阿曼', flag: '🇴🇲' },
+                            { code: '974', name: '卡塔尔', flag: '🇶🇦' },
+                            { code: '965', name: '科威特', flag: '🇰🇼' },
+                            { code: '973', name: '巴林', flag: '🇧🇭' },
+                            { code: '962', name: '约旦', flag: '🇯🇴' },
+                            { code: '964', name: '伊拉克', flag: '🇮🇶' },
+                            { code: '961', name: '黎巴嫩', flag: '🇱🇧' },
+                            { code: '963', name: '叙利亚', flag: '🇸🇾' },
+                            { code: '967', name: '也门', flag: '🇾🇪' },
+                            { code: '970', name: '巴勒斯坦', flag: '🇵🇸' },
+                            { code: '972', name: '以色列', flag: '🇮🇱' },
+                            { code: '90', name: '土耳其', flag: '🇹🇷' },
+                            { code: '994', name: '阿塞拜疆', flag: '🇦🇿' },
+                            { code: '995', name: '格鲁吉亚', flag: '🇬🇪' },
+                            { code: '374', name: '亚美尼亚', flag: '🇦🇲' },
+                            { code: '7', name: '俄罗斯', flag: '🇷🇺' },
+                            { code: '998', name: '乌兹别克斯坦', flag: '🇺🇿' },
+                            { code: '992', name: '塔吉克斯坦', flag: '🇹🇯' },
+                            { code: '996', name: '吉尔吉斯斯坦', flag: '🇰🇬' },
+                            { code: '993', name: '土库曼斯坦', flag: '🇹🇲' },
+                            { code: '380', name: '乌克兰', flag: '🇺🇦' },
+                            { code: '375', name: '白俄罗斯', flag: '🇧🇾' },
+                            { code: '373', name: '摩尔多瓦', flag: '🇲🇩' },
+                            { code: '997', name: '哈萨克斯坦', flag: '🇰🇿' },
+                            { code: '670', name: '东帝汶', flag: '🇹🇱' },
+                            { code: '61', name: '澳大利亚', flag: '🇦🇺' },
+                            { code: '64', name: '新西兰', flag: '🇳🇿' },
+                            { code: '675', name: '巴布亚新几内亚', flag: '🇵🇬' },
+                            { code: '676', name: '汤加', flag: '🇹🇴' },
+                            { code: '679', name: '斐济', flag: '🇫🇯' },
+                            { code: '682', name: '库克群岛', flag: '🇨🇰' },
+                            { code: '685', name: '萨摩亚', flag: '🇼🇸' },
+                            { code: '677', name: '所罗门群岛', flag: '🇸🇧' },
+                            { code: '678', name: '瓦努阿图', flag: '🇻🇺' },
+                            { code: '683', name: '纽埃', flag: '🇳🇺' },
+                            { code: '686', name: '基里巴斯', flag: '🇰🇮' },
+                            { code: '688', name: '图瓦卢', flag: '🇹🇻' },
+                            { code: '689', name: '法属波利尼西亚', flag: '🇵🇫' },
+                            { code: '680', name: '帕劳', flag: '🇵🇼' },
+                            { code: '691', name: '密克罗尼西亚', flag: '🇫🇲' },
+                            { code: '692', name: '马绍尔群岛', flag: '🇲🇭' },
+                            { code: '674', name: '瑙鲁', flag: '🇳🇷' },
+                            // 欧洲
+                            { code: '44', name: '英国', flag: '🇬🇧' },
+                            { code: '49', name: '德国', flag: '🇩🇪' },
+                            { code: '33', name: '法国', flag: '🇫🇷' },
+                            { code: '39', name: '意大利', flag: '🇮🇹' },
+                            { code: '34', name: '西班牙', flag: '🇪🇸' },
+                            { code: '351', name: '葡萄牙', flag: '🇵🇹' },
+                            { code: '31', name: '荷兰', flag: '🇳🇱' },
+                            { code: '32', name: '比利时', flag: '🇧🇪' },
+                            { code: '41', name: '瑞士', flag: '🇨🇭' },
+                            { code: '43', name: '奥地利', flag: '🇦🇹' },
+                            { code: '46', name: '瑞典', flag: '🇸🇪' },
+                            { code: '47', name: '挪威', flag: '🇳🇴' },
+                            { code: '45', name: '丹麦', flag: '🇩🇰' },
+                            { code: '358', name: '芬兰', flag: '🇫🇮' },
+                            { code: '354', name: '冰岛', flag: '🇮🇸' },
+                            { code: '353', name: '爱尔兰', flag: '🇮🇪' },
+                            { code: '352', name: '卢森堡', flag: '🇱🇺' },
+                            { code: '356', name: '马耳他', flag: '🇲🇹' },
+                            { code: '357', name: '塞浦路斯', flag: '🇨🇾' },
+                            { code: '30', name: '希腊', flag: '🇬🇷' },
+                            { code: '48', name: '波兰', flag: '🇵🇱' },
+                            { code: '420', name: '捷克', flag: '🇨🇿' },
+                            { code: '421', name: '斯洛伐克', flag: '🇸🇰' },
+                            { code: '36', name: '匈牙利', flag: '🇭🇺' },
+                            { code: '40', name: '罗马尼亚', flag: '🇷🇴' },
+                            { code: '359', name: '保加利亚', flag: '🇧🇬' },
+                            { code: '381', name: '塞尔维亚', flag: '🇷🇸' },
+                            { code: '385', name: '克罗地亚', flag: '🇭🇷' },
+                            { code: '386', name: '斯洛文尼亚', flag: '🇸🇮' },
+                            { code: '382', name: '黑山', flag: '🇲🇪' },
+                            { code: '383', name: '北马其顿', flag: '🇲🇰' },
+                            { code: '387', name: '波黑', flag: '🇧🇦' },
+                            { code: '389', name: '科索沃', flag: '🇽🇰' },
+                            { code: '371', name: '拉脱维亚', flag: '🇱🇻' },
+                            { code: '370', name: '立陶宛', flag: '🇱🇹' },
+                            { code: '372', name: '爱沙尼亚', flag: '🇪🇪' },
+                            { code: '355', name: '阿尔巴尼亚', flag: '🇦🇱' },
+                            { code: '378', name: '圣马力诺', flag: '🇸🇲' },
+                            { code: '376', name: '安道尔', flag: '🇦🇩' },
+                            { code: '377', name: '摩纳哥', flag: '🇲🇨' },
+                            { code: '423', name: '列支敦士登', flag: '🇱🇮' },
+                            { code: '39', name: '梵蒂冈', flag: '🇻🇦' },
+                            // 北美洲
+                            { code: '1', name: '美国', flag: '🇺🇸' },
+                            { code: '1', name: '加拿大', flag: '🇨🇦' },
+                            { code: '52', name: '墨西哥', flag: '🇲🇽' },
+                            { code: '53', name: '古巴', flag: '🇨🇺' },
+                            { code: '54', name: '阿根廷', flag: '🇦🇷' },
+                            { code: '55', name: '巴西', flag: '🇧🇷' },
+                            { code: '56', name: '智利', flag: '🇨🇱' },
+                            { code: '57', name: '哥伦比亚', flag: '🇨🇴' },
+                            { code: '58', name: '委内瑞拉', flag: '🇻🇪' },
+                            { code: '51', name: '秘鲁', flag: '🇵🇪' },
+                            { code: '591', name: '玻利维亚', flag: '🇧🇴' },
+                            { code: '593', name: '厄瓜多尔', flag: '🇪🇨' },
+                            { code: '595', name: '巴拉圭', flag: '🇵🇾' },
+                            { code: '598', name: '乌拉圭', flag: '🇺🇾' },
+                            { code: '501', name: '伯利兹', flag: '🇧🇿' },
+                            { code: '502', name: '危地马拉', flag: '🇬🇹' },
+                            { code: '503', name: '萨尔瓦多', flag: '🇸🇻' },
+                            { code: '504', name: '洪都拉斯', flag: '🇭🇳' },
+                            { code: '505', name: '尼加拉瓜', flag: '🇳🇮' },
+                            { code: '506', name: '哥斯达黎加', flag: '🇨🇷' },
+                            { code: '507', name: '巴拿马', flag: '🇵🇦' },
+                            { code: '592', name: '特立尼达和多巴哥', flag: '🇹🇹' },
+                            { code: '1', name: '牙买加', flag: '🇯🇲' },
+                            { code: '1', name: '多米尼加', flag: '🇩🇴' },
+                            { code: '1', name: '波多黎各', flag: '🇵🇷' },
+                            { code: '590', name: '瓜德罗普', flag: '🇬🇵' },
+                            { code: '594', name: '法属圭亚那', flag: '🇬🇫' },
+                            { code: '596', name: '马提尼克', flag: '🇲🇶' },
+                            { code: '597', name: '苏里南', flag: '🇸🇷' },
+                            { code: '599', name: '荷属安的列斯', flag: '🇧🇶' },
+                            // 非洲
+                            { code: '20', name: '埃及', flag: '🇪🇬' },
+                            { code: '27', name: '南非', flag: '🇿🇦' },
+                            { code: '234', name: '尼日利亚', flag: '🇳🇬' },
+                            { code: '233', name: '加纳', flag: '🇬🇭' },
+                            { code: '254', name: '肯尼亚', flag: '🇰🇪' },
+                            { code: '255', name: '坦桑尼亚', flag: '🇹🇿' },
+                            { code: '256', name: '乌干达', flag: '🇺🇬' },
+                            { code: '250', name: '卢旺达', flag: '🇷🇼' },
+                            { code: '261', name: '马达加斯加', flag: '🇲🇬' },
+                            { code: '212', name: '摩洛哥', flag: '🇲🇦' },
+                            { code: '213', name: '阿尔及利亚', flag: '🇩🇿' },
+                            { code: '216', name: '突尼斯', flag: '🇹🇳' },
+                            { code: '218', name: '利比亚', flag: '🇱🇾' },
+                            { code: '249', name: '苏丹', flag: '🇸🇩' },
+                            { code: '251', name: '埃塞俄比亚', flag: '🇪🇹' },
+                            { code: '237', name: '喀麦隆', flag: '🇨🇲' },
+                            { code: '221', name: '塞内加尔', flag: '🇸🇳' },
+                            { code: '225', name: '科特迪瓦', flag: '🇨🇮' },
+                            { code: '224', name: '几内亚', flag: '🇬🇳' },
+                            { code: '228', name: '多哥', flag: '🇹🇬' },
+                            { code: '230', name: '毛里求斯', flag: '🇲🇺' },
+                            { code: '263', name: '津巴布韦', flag: '🇿🇼' },
+                            { code: '264', name: '纳米比亚', flag: '🇳🇦' },
+                            { code: '265', name: '马拉维', flag: '🇲🇼' },
+                            { code: '266', name: '博茨瓦纳', flag: '🇧🇼' },
+                            { code: '268', name: '赞比亚', flag: '🇿🇲' },
+                            { code: '267', name: '埃斯瓦蒂尼', flag: '🇸🇿' },
+                        ]
+                        // 按国家代码去重
+                        const unique = new Map()
+                        all.forEach(c => unique.set(c.code, c))
+                        return Array.from(unique.values()).sort((a, b) => a.code.localeCompare(b.code))
+                    })(),
+
+                    // Import/Export Modal
+                    showImportModal: false,
+                    showExportModal: false,
+                    showExportAllModal: false,
+                    importData: { id: '', session: '' },
+                    exportData: { id: '', session: '' },
+                    exportAllData: '',
+
+                    // Template Modal
+                    showTemplateModal: false,
+                    templates: [],
+                    newTemplate: { name: '', category: '问候', content: '', variablesStr: '' },
+
+                    // Schedule Modal
+                    showScheduleModal: false,
+                    schedules: [],
+                    newSchedule: { name: '', description: '', time: '', repeat: 'daily', action: 'send_message', message: '', template_id: '', accounts: [] },
+                    todayExecutions: 0,
+                    pendingExecutions: 0,
+
+                    // Forms
+                    newGlobal: { protocol: 'socks5', host: '', port: 1080, username: '', password: '' },
+                    newProxy: { id: '', protocol: 'socks5', host: '', port: 1080, username: '', password: '' },
+
+                    // Toast
+                    toast: { show: false, message: '', error: false }
+                }
+            },
+            computed: {
+                onlineCount() { return this.accounts.filter(a => a.status === 'online').length },
+                offlineCount() { return this.accounts.filter(a => a.status !== 'online').length },
+                popularCountries() {
+                    return [
+                        { code: '86', name: '中国', flag: '🇨🇳' },
+                        { code: '1', name: '美国', flag: '🇺🇸' },
+                        { code: '852', name: '香港', flag: '🇭🇰' },
+                        { code: '886', name: '台湾', flag: '🇹🇼' },
+                        { code: '81', name: '日本', flag: '🇯🇵' },
+                        { code: '82', name: '韩国', flag: '🇰🇷' },
+                        { code: '65', name: '新加坡', flag: '🇸🇬' },
+                        { code: '60', name: '马来西亚', flag: '🇲🇾' }
+                    ]
+                },
+                filteredCountries() {
+                    if (!this.countrySearch) {
+                        return this.countries
+                    }
+                    const search = this.countrySearch.toLowerCase()
+                    return this.countries.filter(c =>
+                        c.name.toLowerCase().includes(search) ||
+                        c.code.includes(search)
+                    )
+                }
+            },
+            methods: {
+                showToast(msg, error = false) {
+                    this.toast = { show: true, message: msg, error }
+                    setTimeout(() => this.toast.show = false, 3000)
+                },
+                addLog(action, account, detail = '') {
+                    this.logs.push({
+                        action, account, detail,
+                        time: new Date().toLocaleTimeString()
+                    })
+                },
+
+                async loadAccounts() {
+                    try {
+                        const res = await axios.get('/api/accounts')
+                        this.accounts = res.data.accounts || []
+                    } catch (e) { console.error(e) }
+                },
+
+                async loadProxies() {
+                    try {
+                        const res = await axios.get('/api/proxies')
+                        this.globalProxy = res.data.global
+                        this.proxies = Object.entries(res.data.proxies || {}).map(([id, p]) => ({ id, ...p }))
+                    } catch (e) { console.error(e) }
+                },
+
+                async loadTemplates() {
+                    try {
+                        const res = await axios.get('/api/templates')
+                        this.templates = res.data.templates || []
+                    } catch (e) { console.error(e) }
+                },
+
+                async loadSchedules() {
+                    try {
+                        const res = await axios.get('/api/schedules')
+                        this.schedules = Object.values(res.data.schedules || {})
+                        this.updateScheduleStats()
+                    } catch (e) { console.error(e) }
+                },
+
+                async loadLogs() {
+                    try {
+                        const res = await axios.get('/api/logs?limit=100')
+                        this.logs = (res.data.logs || []).map(log => ({
+                            action: log.action,
+                            account: log.account,
+                            detail: log.detail,
+                            time: new Date(log.timestamp || log.time).toLocaleTimeString()
+                        }))
+                    } catch (e) { console.error(e) }
+                },
+
+                async clearLogs() {
+                    if (!confirm('确定清空所有日志?')) return
+                    try {
+                        await axios.post('/api/logs/clear')
+                        this.logs = []
+                        this.showToast('日志已清空')
+                    } catch (e) {
+                        this.showToast('清空失败', true)
+                    }
+                },
+
+                async loadHealth() {
+                    try {
+                        const res = await axios.get('/api/health/report')
+                        this.health = res.data.report || {}
+                        this.healthDetails = res.data.report?.details || {}
+                        this.riskAccounts = res.data.report?.risk_accounts || []
+                    } catch (e) { console.error(e) }
+                },
+
+                async loadStats() {
+                    try {
+                        const res = await axios.get('/api/stats/summary')
+                        this.stats = res.data.summary || {}
+                        const topRes = await axios.get('/api/stats/top', { params: { by: 'uses', limit: 5, period: 'today' } })
+                        this.topAccounts = topRes.data.top_accounts || []
+                    } catch (e) { console.error(e) }
+                },
+
+                // QR & Phone Login
+                openQrModal() {
+                    this.loginMode = 'select'
+                    this.showQrModal = true
+                    this.qrCode = ''
+                    this.qrStatus = ''
+                    this.qrError = ''
+                    this.qrRemaining = 30
+                },
+
+                startQrLogin() {
+                    this.loginMode = 'qr'
+                    this.qrAccountId = 'account_' + Date.now()
+                    this.generateQr()
+                },
+
+                startPhoneLogin() {
+                    this.loginMode = 'phone'
+                    this.phoneStep = 'input'
+                    this.phoneAccountId = 'account_' + Date.now()
+                    this.phoneData = { phone: '', code: '', password: '' }
+                    this.phoneError = ''
+                },
+
+                closeQrModal() {
+                    this.stopQrPolling()
+                    this.showQrModal = false
+                    this.loginMode = 'select'
+                    this.twoFaPassword = ''
+                    this.twoFaError = ''
+                    this.phoneData = { phone: '', code: '', password: '' }
+                    this.phoneError = ''
+                    this.loadAccounts()
+                },
+
+                // QR Login Methods
+                async generateQr() {
+                    try {
+                        const res = await axios.post('/api/accounts/generate-qr', { account_id: this.qrAccountId })
+                        if (res.data.success) {
+                            this.qrCode = res.data.qr_code
+                            this.qrStatus = 'waiting'
+                            this.qrRemaining = 30
+                            this.startQrPolling()
+                            this.addLog('生成二维码', this.qrAccountId)
+                        } else {
+                            this.qrStatus = 'error'
+                            this.qrError = res.data.error || '生成失败'
+                        }
+                    } catch (e) {
+                        this.qrStatus = 'error'
+                        this.qrError = e.response?.data?.detail || e.response?.data?.error || '连接失败，请检查网络或代理'
+                    }
+                },
+
+                startQrPolling() {
+                    this.qrPolling = setInterval(async () => {
+                        this.qrRemaining -= 1
+                        try {
+                            const res = await axios.get(`/api/accounts/${this.qrAccountId}/qr-status`)
+                            if (res.data.status === 'success') {
+                                this.qrStatus = 'success'
+                                this.stopQrPolling()
+                                this.showToast('登录成功！')
+                                this.addLog('登录成功', this.qrAccountId)
+                                this.loadAccounts()
+                                setTimeout(() => this.closeQrModal(), 1500)
+                            } else if (res.data.status === 'need_password') {
+                                this.qrStatus = 'need_password'
+                                this.stopQrPolling()
+                            } else if (this.qrRemaining <= 0) {
+                                this.qrStatus = 'timeout'
+                                this.stopQrPolling()
+                            }
+                        } catch (e) { console.error(e) }
+                    }, 1000)
+                },
+
+                stopQrPolling() {
+                    if (this.qrPolling) {
+                        clearInterval(this.qrPolling)
+                        this.qrPolling = null
+                    }
+                },
+
+                async refreshQr() {
+                    this.stopQrPolling()
+                    this.qrCode = ''
+                    this.qrStatus = ''
+                    this.twoFaPassword = ''
+                    this.twoFaError = ''
+                    this.qrAccountId = 'account_' + Date.now()
+                    await this.generateQr()
+                },
+
+                async submit2FA() {
+                    if (!this.twoFaPassword) return
+                    this.twoFaLoading = true
+                    this.twoFaError = ''
+                    try {
+                        const res = await axios.post(`/api/accounts/${this.qrAccountId}/2fa-password`, {
+                            password: this.twoFaPassword
+                        })
+                        if (res.data.success) {
+                            this.qrStatus = 'success'
+                            this.showToast('登录成功！')
+                            this.addLog('登录成功(2FA)', this.qrAccountId)
+                            this.loadAccounts()
+                            setTimeout(() => this.closeQrModal(), 1500)
+                        } else {
+                            this.twoFaError = res.data.error || '密码错误'
+                        }
+                    } catch (e) {
+                        this.twoFaError = e.response?.data?.detail || '验证失败'
+                    }
+                    this.twoFaLoading = false
+                },
+
+                // Phone Login Methods
+                async sendPhoneCode() {
+                    if (!this.phoneData.countryCode || !this.phoneData.phone) return
+                    this.phoneLoading = true
+                    this.phoneError = ''
+                    try {
+                        // 组合完整的手机号（国家代码+手机号）
+                        const fullPhone = '+' + this.phoneData.countryCode + this.phoneData.phone
+                        const res = await axios.post('/api/accounts/send-code', {
+                            account_id: this.phoneAccountId,
+                            phone: fullPhone
+                        })
+                        if (res.data.success) {
+                            this.phoneStep = 'code'
+                            this.addLog('发送验证码', fullPhone)
+                        } else {
+                            this.phoneError = res.data.error || '发送失败'
+                        }
+                    } catch (e) {
+                        this.phoneError = e.response?.data?.detail || e.response?.data?.error || '连接失败，请检查网络或代理'
+                    }
+                    this.phoneLoading = false
+                },
+
+                async verifyPhoneCode() {
+                    if (!this.phoneData.code) return
+                    this.phoneLoading = true
+                    this.phoneError = ''
+                    try {
+                        const res = await axios.post('/api/accounts/verify-code', {
+                            account_id: this.phoneAccountId,
+                            code: this.phoneData.code
+                        })
+                        if (res.data.success) {
+                            this.phoneStep = 'success'
+                            this.showToast('登录成功！')
+                            this.addLog('手机号登录成功', this.phoneAccountId)
+                            this.loadAccounts()
+                            setTimeout(() => this.closeQrModal(), 1500)
+                        } else if (res.data.needs_2fa) {
+                            this.phoneStep = '2fa'
+                        } else {
+                            this.phoneError = res.data.error || '验证失败'
+                        }
+                    } catch (e) {
+                        this.phoneError = e.response?.data?.detail || e.response?.data?.error || '验证失败'
+                    }
+                    this.phoneLoading = false
+                },
+
+                async submitPhone2FA() {
+                    if (!this.phoneData.password) return
+                    this.phoneLoading = true
+                    this.phoneError = ''
+                    try {
+                        const res = await axios.post(`/api/accounts/${this.phoneAccountId}/phone-2fa`, {
+                            password: this.phoneData.password
+                        })
+                        if (res.data.success) {
+                            this.phoneStep = 'success'
+                            this.showToast('登录成功！')
+                            this.addLog('手机号登录成功(2FA)', this.phoneAccountId)
+                            this.loadAccounts()
+                            setTimeout(() => this.closeQrModal(), 1500)
+                        } else {
+                            this.phoneError = res.data.error || '密码错误'
+                        }
+                    } catch (e) {
+                        this.phoneError = e.response?.data?.detail || '验证失败'
+                    }
+                    this.phoneLoading = false
+                },
+
+                async cancelPhoneLogin() {
+                    try {
+                        await axios.delete(`/api/accounts/${this.phoneAccountId}/phone-login`)
+                        this.closeQrModal()
+                    } catch (e) {
+                        this.closeQrModal()
+                    }
+                },
+
+                // Account
+                async deleteAccount(id) {
+                    if (!confirm(`确定删除账号 ${id}?`)) return
+                    try {
+                        await axios.delete(`/api/accounts/${id}`)
+                        this.showToast('账号已删除')
+                        this.addLog('删除账号', id)
+                        this.loadAccounts()
+                    } catch (e) {
+                        this.showToast(e.response?.data?.detail || '删除失败', true)
+                    }
+                },
+
+                async exportSession(id) {
+                    try {
+                        const res = await axios.get(`/api/accounts/${id}/export-session`)
+                        this.exportData = { id, session: res.data.session_string }
+                        this.showExportModal = true
+                        this.addLog('导出Session', id)
+                    } catch (e) {
+                        this.showToast('导出失败', true)
+                    }
+                },
+
+                copyAccountId(accountId) {
+                    navigator.clipboard.writeText(accountId).then(() => {
+                        this.showToast(`✅ 已复制: ${accountId}`)
+                    }).catch(() => {
+                        // 降级方案
+                        const textarea = document.createElement('textarea')
+                        textarea.value = accountId
+                        textarea.style.position = 'fixed'
+                        textarea.style.opacity = '0'
+                        document.body.appendChild(textarea)
+                        textarea.select()
+                        try {
+                            document.execCommand('copy')
+                            this.showToast(`✅ 已复制: ${accountId}`)
+                        } catch (e) {
+                            this.showToast('复制失败', true)
+                        }
+                        document.body.removeChild(textarea)
+                    })
+                },
+
+                copyExport() {
+                    navigator.clipboard.writeText(this.exportData.session)
+                    this.showToast('已复制到剪贴板')
+                },
+
+                copyExportAll() {
+                    navigator.clipboard.writeText(this.exportAllData)
+                    this.showToast('已复制全部')
+                },
+
+                async importSession() {
+                    try {
+                        await axios.post('/api/accounts/add-session', {
+                            account_id: this.importData.id,
+                            session_string: this.importData.session
+                        })
+                        this.showToast('导入成功')
+                        this.addLog('导入Session', this.importData.id)
+                        this.showImportModal = false
+                        this.importData = { id: '', session: '' }
+                        this.loadAccounts()
+                    } catch (e) {
+                        this.showToast(e.response?.data?.detail || '导入失败', true)
+                    }
+                },
+
+                // Proxy
+                async setGlobalProxy() {
+                    try {
+                        await axios.post('/api/proxies/set-global', this.newGlobal)
+                        this.showToast('全局代理设置成功')
+                        this.addLog('设置全局代理', `${this.newGlobal.host}:${this.newGlobal.port}`)
+                        this.newGlobal = { protocol: 'socks5', host: '', port: 1080, username: '', password: '' }
+                        this.loadProxies()
+                    } catch (e) {
+                        this.showToast('设置失败', true)
+                    }
+                },
+
+                async removeGlobalProxy() {
+                    try {
+                        await axios.delete('/api/proxies/global')
+                        this.showToast('全局代理已移除')
+                        this.addLog('移除全局代理', '-')
+                        this.loadProxies()
+                    } catch (e) {
+                        this.showToast('移除失败', true)
+                    }
+                },
+
+                async testGlobalProxy() {
+                    this.testing = true
+                    try {
+                        const res = await axios.post('/api/proxies/test')
+                        const result = res.data.results?.global
+                        if (result?.success) {
+                            this.showToast(`连接成功！响应: ${result.response_time.toFixed(0)}ms`)
+                        } else {
+                            this.showToast(result?.error || '连接失败', true)
+                        }
+                    } catch (e) {
+                        this.showToast('测试失败', true)
+                    }
+                    this.testing = false
+                },
+
+                async addProxy() {
+                    try {
+                        await axios.post('/api/proxies/add', {
+                            proxy_id: this.newProxy.id,
+                            protocol: this.newProxy.protocol,
+                            host: this.newProxy.host,
+                            port: this.newProxy.port,
+                            username: this.newProxy.username,
+                            password: this.newProxy.password
+                        })
+                        this.showToast('代理添加成功')
+                        this.addLog('添加代理', this.newProxy.id)
+                        this.newProxy = { id: '', protocol: 'socks5', host: '', port: 1080, username: '', password: '' }
+                        this.loadProxies()
+                    } catch (e) {
+                        this.showToast('添加失败', true)
+                    }
+                },
+
+                async deleteProxy(id) {
+                    if (!confirm(`确定删除代理 ${id}?`)) return
+                    try {
+                        await axios.delete(`/api/proxies/${id}`)
+                        this.showToast('代理已删除')
+                        this.addLog('删除代理', id)
+                        this.loadProxies()
+                    } catch (e) {
+                        this.showToast('删除失败', true)
+                    }
+                },
+
+                async testProxy(id) {
+                    try {
+                        const res = await axios.post('/api/proxies/test', null, { params: { proxy_id: id } })
+                        const result = res.data.result
+                        if (result?.success) {
+                            this.showToast(`连接成功！响应: ${result.response_time.toFixed(0)}ms`)
+                        } else {
+                            this.showToast(result?.error || '连接失败', true)
+                        }
+                    } catch (e) {
+                        this.showToast('测试失败', true)
+                    }
+                },
+
+                // Templates
+                async addTemplate() {
+                    const variables = this.newTemplate.variablesStr
+                        ? this.newTemplate.variablesStr.split(',').map(v => v.trim()).filter(v => v)
+                        : []
+                    const name = this.newTemplate.name || ('模板' + (this.templates.length + 1))
+                    const template_id = 'tpl_' + Date.now()
+                    try {
+                        await axios.post('/api/templates', {
+                            template_id,
+                            name,
+                            content: this.newTemplate.content,
+                            category: this.newTemplate.category,
+                            variables
+                        })
+                        this.showToast('模板添加成功')
+                        this.addLog('添加模板', name)
+                        this.showTemplateModal = false
+                        this.newTemplate = { name: '', category: '问候', content: '', variablesStr: '' }
+                        await this.loadTemplates()
+                    } catch (e) {
+                        this.showToast(e.response?.data?.detail || '添加失败', true)
+                    }
+                },
+
+                async addQuickTemplate(name, content) {
+                    const template_id = 'tpl_' + Date.now()
+                    try {
+                        await axios.post('/api/templates', {
+                            template_id,
+                            name,
+                            content,
+                            category: '快捷',
+                            variables: []
+                        })
+                        this.showToast(`已添加"${name}"模板`)
+                        await this.loadTemplates()
+                    } catch (e) {
+                        this.showToast('添加失败', true)
+                    }
+                },
+
+                async deleteTemplate(i) {
+                    if (!confirm('确定删除此模板?')) return
+                    const tpl = this.templates[i]
+                    try {
+                        await axios.delete(`/api/templates/${tpl.template_id || tpl.id}`)
+                        this.showToast('模板已删除')
+                        this.addLog('删除模板', tpl.name)
+                        await this.loadTemplates()
+                    } catch (e) {
+                        this.showToast('删除失败', true)
+                    }
+                },
+
+                copyTemplate(tpl) {
+                    navigator.clipboard.writeText(tpl.content)
+                    this.showToast('已复制到剪贴板')
+                },
+
+                // Schedules
+                async addSchedule() {
+                    const schedule_id = 'sched_' + Date.now()
+                    // Convert time to cron format
+                    const [hours, minutes] = this.newSchedule.time.split(':')
+                    let cron = `${minutes} ${hours} * * *`
+                    if (this.newSchedule.repeat === 'weekly') {
+                        cron = `${minutes} ${hours} * * 1`
+                    } else if (this.newSchedule.repeat === 'hourly') {
+                        cron = `0 * * * *`
+                    }
+
+                    try {
+                        await axios.post('/api/schedules', {
+                            schedule_id,
+                            name: this.newSchedule.name,
+                            cron,
+                            action: this.newSchedule.action === 'send_message' ? 'send_message' : 'send_template',
+                            target: 'all', // For simplicity
+                            message: this.newSchedule.message,
+                            template_id: this.newSchedule.template_id,
+                            account_ids: this.newSchedule.accounts,
+                            enabled: true
+                        })
+                        this.showToast('定时计划添加成功')
+                        this.addLog('添加定时计划', this.newSchedule.name)
+                        this.showScheduleModal = false
+                        this.newSchedule = { name: '', description: '', time: '', repeat: 'daily', action: 'send_message', message: '', template_id: '', accounts: [] }
+                        await this.loadSchedules()
+                    } catch (e) {
+                        this.showToast(e.response?.data?.detail || '添加失败', true)
+                    }
+                },
+
+                async toggleSchedule(i) {
+                    const sched = this.schedules[i]
+                    try {
+                        await axios.post(`/api/schedules/${sched.schedule_id}/toggle`)
+                        sched.enabled = !sched.enabled
+                        this.showToast(sched.enabled ? '计划已启用' : '计划已禁用')
+                        this.updateScheduleStats()
+                    } catch (e) {
+                        this.showToast('操作失败', true)
+                    }
+                },
+
+                async deleteSchedule(i) {
+                    if (!confirm('确定删除此计划?')) return
+                    const sched = this.schedules[i]
+                    try {
+                        await axios.delete(`/api/schedules/${sched.schedule_id}`)
+                        this.showToast('计划已删除')
+                        this.addLog('删除定时计划', sched.name)
+                        await this.loadSchedules()
+                    } catch (e) {
+                        this.showToast('删除失败', true)
+                    }
+                },
+
+                updateScheduleStats() {
+                    this.pendingExecutions = this.schedules.filter(s => s.enabled).length
+                    // 简单统计今日执行数
+                    const today = new Date().toDateString()
+                    this.todayExecutions = this.schedules.filter(s => 
+                        s.lastRun && new Date(s.lastRun).toDateString() === today
+                    ).length
+                },
+
+                formatTime(t) {
+                    if (!t || t === 'N/A') return '-'
+                    try {
+                        const d = new Date(t)
+                        const diff = (Date.now() - d) / 1000
+                        if (diff < 60) return '刚刚'
+                        if (diff < 3600) return Math.floor(diff / 60) + '分钟前'
+                        if (diff < 86400) return Math.floor(diff / 3600) + '小时前'
+                        return Math.floor(diff / 86400) + '天前'
+                    } catch { return '-' }
+                }
+            },
+            watch: {
+                showExportAllModal(v) {
+                    if (v) {
+                        this.exportAllData = JSON.stringify(this.accounts.map(a => ({
+                            account_id: a.account_id,
+                            username: a.username,
+                            user_id: a.user_id
+                        })), null, 2)
+                    }
+                }
+            },
+            mounted() {
+                this.loadAccounts()
+                this.loadProxies()
+                this.loadHealth()
+                this.loadStats()
+                this.loadTemplates()
+                this.loadSchedules()
+                this.loadLogs()
+                this.updateScheduleStats()
+                setInterval(() => {
+                    this.loadAccounts()
+                    this.loadHealth()
+                }, 30000)
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+# ============================================================
+# Telegram MCP Complete - Docker Compose 配置
+# ============================================================
+# 使用方式: docker-compose up -d
+
+version: '3.8'
+
+services:
+  telegram-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-mcp-complete
+    ports:
+      - "8080:8080"
+    volumes:
+      # 持久化账号数据
+      - ./accounts:/app/accounts
+      # 可选：挂载自定义配置
+      # - ./.env:/app/.env
+    environment:
+      # Dashboard 配置
+      - DASHBOARD_PORT=8080
+      - DASHBOARD_HOST=0.0.0.0
+      # Telegram API（可选，使用内置凭证可留空）
+      - TELEGRAM_API_ID=${TELEGRAM_API_ID:-2040}
+      - TELEGRAM_API_HASH=${TELEGRAM_API_HASH:-b18441a1ff607e10a989891a5462e627}
+      # 日志级别
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    networks:
+      - telegram-mcp-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/accounts').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # 可选：添加 Nginx 反向代理
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: telegram-mcp-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - telegram-mcp
+  #   restart: unless-stopped
+  #   networks:
+  #     - telegram-mcp-network
+
+networks:
+  telegram-mcp-network:
+    driver: bridge
+
+# ============================================================
+# 使用说明
+# ============================================================
+#
+# 1. 启动服务：
+#    docker-compose up -d
+#
+# 2. 查看日志：
+#    docker-compose logs -f
+#
+# 3. 停止服务：
+#    docker-compose down
+#
+# 4. 重新构建：
+#    docker-compose up -d --build
+#
+# 5. 访问 Dashboard：
+#    http://localhost:8080/static/dashboard.html
+#
+# ============================================================
