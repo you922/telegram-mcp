@@ -4,6 +4,7 @@ Telegram Session Manager
 """
 import os
 import json
+import stat
 import asyncio
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -13,9 +14,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
-API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ff607e10a989891a5462e627")
+# Telegram API credentials — MUST be set via environment variables.
+# The fallback values are Telegram's public test-mode credentials and are
+# *not* suitable for production use.  Set TELEGRAM_API_ID and
+# TELEGRAM_API_HASH in your .env file or environment.
+_DEFAULT_API_ID = "2040"
+_DEFAULT_API_HASH = "b18441a1ff607e10a989891a5462e627"
+
+API_ID = int(os.getenv("TELEGRAM_API_ID", _DEFAULT_API_ID))
+API_HASH = os.getenv("TELEGRAM_API_HASH", _DEFAULT_API_HASH)
 SESSION_FILE = os.getenv("SESSION_FILE", ".telegram_session")
+
+if str(API_ID) == _DEFAULT_API_ID or API_HASH == _DEFAULT_API_HASH:
+    import warnings
+    warnings.warn(
+        "Using default Telegram test credentials. "
+        "Set TELEGRAM_API_ID and TELEGRAM_API_HASH env vars for production.",
+        stacklevel=2,
+    )
 USER_DATA_FILE = ".telegram_user_data.json"
 
 
@@ -36,9 +52,10 @@ class SessionManager:
         return None
 
     def save_session(self, session_string: str) -> None:
-        """保存 session 到文件"""
+        """保存 session 到文件 (owner-only permissions)."""
         with open(SESSION_FILE, "w") as f:
             f.write(session_string)
+        os.chmod(SESSION_FILE, stat.S_IRUSR | stat.S_IWUSR)  # 0o600
         self.session_string = session_string
 
     def load_user_data(self) -> Optional[Dict[str, Any]]:

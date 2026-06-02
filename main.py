@@ -26,10 +26,8 @@ from telethon.tl.types import (
 
 load_dotenv()
 
-# 配置
-API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
-API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ff607e10a989891a5462e627")
-SESSION_FILE = os.getenv("SESSION_FILE", ".telegram_session")
+# Credentials are centralised in session_manager to avoid duplication.
+from session_manager import API_ID, API_HASH, SESSION_FILE
 
 # 允许嵌套事件循环
 nest_asyncio.apply()
@@ -111,7 +109,7 @@ async def get_client() -> TelegramClient:
                 if acc_data.get("session_string"):
                     session_string = acc_data["session_string"]
                     break
-        except:
+        except Exception:
             pass
     
     # 如果账号管理系统没有，则使用默认session文件
@@ -264,7 +262,7 @@ async def get_chat(chat_id: Union[int, str]) -> str:
             try:
                 participants = await c.get_participants(entity, limit=0)
                 lines.append(f"成员数: {participants.total}")
-            except:
+            except Exception:
                 pass
 
         elif isinstance(entity, Chat):
@@ -1014,7 +1012,7 @@ async def get_invite_link(chat_id: Union[int, str]) -> str:
         try:
             link = await c.export_chat_invite_link(entity)
             return f"🔗 邀请链接: {link}"
-        except:
+        except Exception:
             return "无法获取邀请链接"
     except Exception as e:
         return log_and_format_error("get_invite_link", e, chat_id=chat_id)
@@ -2793,7 +2791,7 @@ async def get_privacy() -> str:
                     elif isinstance(rule, types.PrivacyValueAllowUsers):
                         rules.append(f"指定用户: {rule.users}")
                 settings.append(f"{type(key).__name__}: {', '.join(rules)}")
-            except:
+            except Exception:
                 pass
 
         return "🔒 隐私设置:\n" + "\n".join(settings)

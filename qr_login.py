@@ -5,13 +5,11 @@ Telegram QR Code Login
 """
 import os
 import asyncio
+import subprocess
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-# 内置公开凭据
-API_ID = 2040
-API_HASH = "b18441a1ff607e10a989891a5462e627"
-SESSION_FILE = ".telegram_session"
+from session_manager import API_ID, API_HASH, SESSION_FILE
 
 
 async def main():
@@ -66,7 +64,7 @@ async def main():
         print(f"   请打开此文件并扫描\n")
 
         # 尝试在 macOS 上用预览打开
-        os.system("open /tmp/telegram_qr_login.png 2>/dev/null")
+        subprocess.run(["open", "/tmp/telegram_qr_login.png"], stderr=subprocess.DEVNULL, check=False)
 
     except Exception as e:
         print(f"QR Code 生成失败: {e}")

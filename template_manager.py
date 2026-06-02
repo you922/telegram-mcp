@@ -28,7 +28,7 @@ class TemplateManager:
                 with open(TEMPLATE_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.templates = data.get("templates", {})
-            except:
+            except (json.JSONDecodeError, OSError):
                 self.templates = {}
 
     def _save_templates(self):

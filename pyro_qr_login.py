@@ -5,12 +5,10 @@ Pyrogram 对 QR 登录支持更好
 """
 import os
 import asyncio
+import subprocess
 from pyrogram import Client
 
-# 内置公开凭据
-API_ID = 2040
-API_HASH = "b18441a1ff607e10a989891a5462e627"
-SESSION_FILE = ".telegram_session"
+from session_manager import API_ID, API_HASH, SESSION_FILE
 
 
 async def main():
@@ -69,7 +67,7 @@ async def main():
             print(f"   已自动打开预览\n")
 
             # 在 macOS 上用预览打开
-            os.system("open /tmp/telegram_pyro_qr.png 2>/dev/null")
+            subprocess.run(["open", "/tmp/telegram_pyro_qr.png"], stderr=subprocess.DEVNULL, check=False)
 
         except Exception as e:
             print(f"QR Code 生成失败: {e}")

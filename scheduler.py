@@ -38,7 +38,7 @@ class TaskScheduler:
                 with open(SCHEDULE_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.schedules = data.get("schedules", {})
-            except:
+            except (json.JSONDecodeError, OSError):
                 self.schedules = {}
 
     def _save_schedules(self):
@@ -138,7 +138,7 @@ class TaskScheduler:
         try:
             cron_obj = croniter(cron, datetime.now())
             return cron_obj.get_next(datetime).isoformat()
-        except:
+        except (ValueError, KeyError):
             return ""
 
     def remove_schedule(self, schedule_id: str) -> bool:

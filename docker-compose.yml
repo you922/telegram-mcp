@@ -22,9 +22,13 @@ services:
       # Dashboard 配置
       - DASHBOARD_PORT=8080
       - DASHBOARD_HOST=0.0.0.0
-      # Telegram API（可选，使用内置凭证可留空）
-      - TELEGRAM_API_ID=${TELEGRAM_API_ID:-2040}
-      - TELEGRAM_API_HASH=${TELEGRAM_API_HASH:-b18441a1ff607e10a989891a5462e627}
+      # Telegram API — set these in your .env file or shell environment
+      - TELEGRAM_API_ID=${TELEGRAM_API_ID}
+      - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+      # Dashboard authentication — REQUIRED for production
+      - DASHBOARD_API_KEY=${DASHBOARD_API_KEY}
+      # CORS origins (comma-separated, no wildcards)
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080}
       # 日志级别
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     restart: unless-stopped
