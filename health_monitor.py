@@ -11,8 +11,9 @@ from typing import Dict, List
 from account_manager import account_manager
 from proxy_manager import proxy_manager
 
+from shared.config import ACCOUNTS_DIR
+from shared.json_store import JsonStore
 
-ACCOUNTS_DIR = "./accounts"
 HEALTH_FILE = os.path.join(ACCOUNTS_DIR, "health.json")
 
 
@@ -21,20 +22,13 @@ class HealthMonitor:
 
     def __init__(self):
         self.health_data: Dict = {}
-        self._load_health()
+        self._store = JsonStore("health.json")
+        self.health_data = self._store.load()
         self._monitoring = False
-
-    def _load_health(self):
-        """加载健康数据"""
-        if os.path.exists(HEALTH_FILE):
-            with open(HEALTH_FILE, 'r', encoding='utf-8') as f:
-                self.health_data = json.load(f)
 
     def _save_health(self):
         """保存健康数据"""
-        os.makedirs(ACCOUNTS_DIR, exist_ok=True)
-        with open(HEALTH_FILE, 'w', encoding='utf-8') as f:
-            json.dump(self.health_data, f, ensure_ascii=False, indent=2)
+        self._store.save(self.health_data)
 
     def init_account_health(self, account_id: str):
         """初始化账号健康数据"""

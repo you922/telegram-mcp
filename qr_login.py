@@ -8,10 +8,8 @@ import asyncio
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-# 内置公开凭据
-API_ID = 2040
-API_HASH = "b18441a1ff607e10a989891a5462e627"
-SESSION_FILE = ".telegram_session"
+from shared.config import API_ID, API_HASH, SESSION_FILE
+from shared.client_factory import create_telegram_client
 
 
 async def main():
@@ -33,7 +31,7 @@ async def main():
     print("正在生成 QR Code...")
     print("请用手机 Telegram 扫描二维码登录\n")
 
-    client = TelegramClient(StringSession(), API_ID, API_HASH)
+    client = create_telegram_client()
 
     # QR 登录
     await client.connect()

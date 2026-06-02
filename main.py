@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import List, Dict, Optional, Union, Any
 
-from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from telethon import TelegramClient, functions, utils
@@ -24,12 +23,8 @@ from telethon.tl.types import (
     InputChatPhotoEmpty,
 )
 
-load_dotenv()
-
-# 配置
-API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
-API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ff607e10a989891a5462e627")
-SESSION_FILE = os.getenv("SESSION_FILE", ".telegram_session")
+from shared.config import API_ID, API_HASH, SESSION_FILE
+from shared.client_factory import create_telegram_client
 
 # 允许嵌套事件循环
 nest_asyncio.apply()
@@ -127,11 +122,7 @@ async def get_client() -> TelegramClient:
         )
 
     if client is None:
-        client = TelegramClient(
-            StringSession(session_string),
-            API_ID,
-            API_HASH
-        )
+        client = create_telegram_client(session_string)
 
     if not client.is_connected():
         await client.connect()

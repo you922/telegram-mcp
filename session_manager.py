@@ -9,13 +9,10 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from telethon import TelegramClient
 from telethon.sessions import StringSession
-from dotenv import load_dotenv
 
-load_dotenv()
+from shared.config import API_ID, API_HASH, SESSION_FILE
+from shared.client_factory import create_telegram_client
 
-API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
-API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ff607e10a989891a5462e627")
-SESSION_FILE = os.getenv("SESSION_FILE", ".telegram_session")
 USER_DATA_FILE = ".telegram_user_data.json"
 
 
@@ -72,11 +69,7 @@ class SessionManager:
         if not self.session_string:
             raise ValueError("No session available. Please login first.")
 
-        self.client = TelegramClient(
-            StringSession(self.session_string),
-            API_ID,
-            API_HASH
-        )
+        self.client = create_telegram_client(self.session_string)
         return self.client
 
     async def get_client(self) -> TelegramClient:

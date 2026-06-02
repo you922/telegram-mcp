@@ -16,10 +16,8 @@ import qrcode
 from io import BytesIO
 import base64
 
-# 内置公开凭据
-API_ID = 2040
-API_HASH = "b18441a1ff607e10a989891a5462e627"
-SESSION_FILE = ".telegram_session"
+from shared.config import API_ID, API_HASH, SESSION_FILE
+from shared.client_factory import create_telegram_client
 
 app = Flask(__name__)
 CORS(app)
@@ -231,7 +229,7 @@ async def do_qr_login():
     global qr_login_instance, login_status
 
     try:
-        client = TelegramClient(StringSession(), API_ID, API_HASH)
+        client = create_telegram_client()
         await client.connect()
 
         # QR 登录

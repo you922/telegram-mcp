@@ -9,8 +9,9 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from collections import deque
 
+from shared.config import ACCOUNTS_DIR
+from shared.json_store import JsonStore
 
-ACCOUNTS_DIR = "./accounts"
 LOG_FILE = os.path.join(ACCOUNTS_DIR, "logs.json")
 MAX_LOGS = 1000  # 最多保留1000条日志
 
@@ -20,22 +21,12 @@ class LogManager:
 
     def __init__(self):
         self.logs: List[Dict] = []
-        self._load_logs()
-
-    def _load_logs(self):
-        """加载日志"""
-        if os.path.exists(LOG_FILE):
-            try:
-                with open(LOG_FILE, 'r', encoding='utf-8') as f:
-                    self.logs = json.load(f)
-            except:
-                self.logs = []
+        self._store = JsonStore("logs.json", default=[])
+        self.logs = self._store.load()
 
     def _save_logs(self):
         """保存日志"""
-        os.makedirs(ACCOUNTS_DIR, exist_ok=True)
-        with open(LOG_FILE, 'w', encoding='utf-8') as f:
-            json.dump(self.logs, f, ensure_ascii=False, indent=2)
+        self._store.save(self.logs)
 
     def add_log(self, action: str, account: str, detail: str = "", level: str = "info") -> None:
         """

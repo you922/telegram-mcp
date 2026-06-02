@@ -9,8 +9,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 from collections import defaultdict
 
+from shared.config import ACCOUNTS_DIR
+from shared.json_store import JsonStore
 
-ACCOUNTS_DIR = "./accounts"
 STATS_FILE = os.path.join(ACCOUNTS_DIR, "stats.json")
 
 
@@ -19,19 +20,12 @@ class StatsTracker:
 
     def __init__(self):
         self.stats: Dict = {}
-        self._load_stats()
-
-    def _load_stats(self):
-        """加载统计数据"""
-        if os.path.exists(STATS_FILE):
-            with open(STATS_FILE, 'r', encoding='utf-8') as f:
-                self.stats = json.load(f)
+        self._store = JsonStore("stats.json")
+        self.stats = self._store.load()
 
     def _save_stats(self):
         """保存统计数据"""
-        os.makedirs(ACCOUNTS_DIR, exist_ok=True)
-        with open(STATS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(self.stats, f, ensure_ascii=False, indent=2)
+        self._store.save(self.stats)
 
     def _get_today(self) -> str:
         """获取今天的日期字符串"""
