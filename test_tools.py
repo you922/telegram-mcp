@@ -43,7 +43,7 @@ async def test():
         try:
             tool = tm.get_tool(tool_name)
             print(f"✅ {tool_name}: 已注册")
-        except:
+        except Exception:
             print(f"❌ {tool_name}: 未找到")
 
     # 5. 测试实际工具调用

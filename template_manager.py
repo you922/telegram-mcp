@@ -4,10 +4,13 @@
 AI 可以调用预设模板发送消息
 """
 import json
+import logging
 import os
 from datetime import datetime
 from typing import List, Dict, Optional
 import re
+
+logger = logging.getLogger("telegram_mcp.template_manager")
 
 
 ACCOUNTS_DIR = "./accounts"
@@ -28,7 +31,8 @@ class TemplateManager:
                 with open(TEMPLATE_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.templates = data.get("templates", {})
-            except:
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to load templates from {TEMPLATE_FILE}: {e}")
                 self.templates = {}
 
     def _save_templates(self):

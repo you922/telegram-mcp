@@ -4,10 +4,13 @@
 持久化存储所有操作日志
 """
 import json
+import logging
 import os
 from datetime import datetime
 from typing import List, Dict, Optional
 from collections import deque
+
+logger = logging.getLogger("telegram_mcp.log_manager")
 
 
 ACCOUNTS_DIR = "./accounts"
@@ -28,7 +31,8 @@ class LogManager:
             try:
                 with open(LOG_FILE, 'r', encoding='utf-8') as f:
                     self.logs = json.load(f)
-            except:
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to load logs from {LOG_FILE}: {e}")
                 self.logs = []
 
     def _save_logs(self):

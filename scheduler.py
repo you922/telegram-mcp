@@ -5,10 +5,13 @@
 """
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Callable
 from croniter import croniter
+
+logger = logging.getLogger("telegram_mcp.scheduler")
 
 # 导入管理模块
 from account_manager import account_manager
@@ -38,7 +41,8 @@ class TaskScheduler:
                 with open(SCHEDULE_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.schedules = data.get("schedules", {})
-            except:
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to load schedules from {SCHEDULE_FILE}: {e}")
                 self.schedules = {}
 
     def _save_schedules(self):
@@ -97,6 +101,7 @@ class TaskScheduler:
         try:
             croniter(cron)
         except ValueError as e:
+            logger.warning(f"Invalid cron expression '{cron}' for schedule '{schedule_id}': {e}")
             return False
 
         # 统一账号列表参数（兼容 account_ids 和 accounts）
@@ -138,7 +143,8 @@ class TaskScheduler:
         try:
             cron_obj = croniter(cron, datetime.now())
             return cron_obj.get_next(datetime).isoformat()
-        except:
+        except (ValueError, KeyError) as e:
+            logger.warning(f"Failed to compute next run for cron '{cron}': {e}")
             return ""
 
     def remove_schedule(self, schedule_id: str) -> bool:
@@ -403,9 +409,7 @@ class TaskScheduler:
                 await asyncio.sleep(10)
 
             except Exception as e:
-                print(f"调度器错误: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.error(f"Scheduler error: {e}", exc_info=True)
                 await asyncio.sleep(10)
 
     def stop(self):

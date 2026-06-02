@@ -5,11 +5,14 @@ FastAPI + WebSocket 实现实时状态推送
 """
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
+
+logger = logging.getLogger("telegram_mcp.dashboard")
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
@@ -905,8 +908,8 @@ class ConnectionManager:
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to broadcast to a WebSocket connection: {e}")
 
 
 manager = ConnectionManager()
@@ -945,7 +948,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                     await asyncio.sleep(5)  # 每5秒更新一次
                 except Exception as e:
-                    print(f"广播错误: {e}")
+                    logger.warning(f"Broadcast error: {e}")
                     await asyncio.sleep(5)
 
         # 启动广播任务
@@ -963,7 +966,7 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
         stop_event.set()
     except Exception as e:
-        print(f"WebSocket 错误: {e}")
+        logger.warning(f"WebSocket error: {e}")
         manager.disconnect(websocket)
         stop_event.set()
 

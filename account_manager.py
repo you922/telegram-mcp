@@ -5,6 +5,7 @@
 """
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime
 from typing import Dict, List, Optional, Any
@@ -13,6 +14,8 @@ from telethon.sessions import StringSession
 import qrcode
 from io import BytesIO
 import base64
+
+logger = logging.getLogger("telegram_mcp.account_manager")
 
 
 API_ID = 2040
@@ -39,8 +42,12 @@ class AccountManager:
     def _load_config(self):
         """加载账号配置"""
         if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                self.accounts = json.load(f)
+            try:
+                with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    self.accounts = json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to load accounts config from {CONFIG_FILE}: {e}")
+                self.accounts = {}
 
     def _save_config(self):
         """保存账号配置"""
@@ -95,7 +102,8 @@ class AccountManager:
             client = self.clients[account_id]
             try:
                 return client.is_connected()
-            except:
+            except Exception as e:
+                logger.debug(f"Connection check failed for {account_id}: {e}")
                 return False
         return False
 
@@ -154,7 +162,7 @@ class AccountManager:
             self._save_config()
             return True
         except Exception as e:
-            print(f"添加账号失败: {e}")
+            logger.error(f"Failed to add account {account_id}: {e}")
             return False
 
     async def generate_qr_code(self, account_id: str, proxy: Dict = None) -> Dict:
@@ -410,8 +418,8 @@ class AccountManager:
             old_session = self.qr_sessions[account_id]
             try:
                 await old_session["client"].disconnect()
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Error disconnecting old QR session for {account_id}: {e}")
             del self.qr_sessions[account_id]
 
         return await self.generate_qr_code(account_id, proxy)
@@ -436,8 +444,8 @@ class AccountManager:
         if account_id in self.clients:
             try:
                 await self.clients[account_id].disconnect()
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Error disconnecting client for {account_id}: {e}")
             del self.clients[account_id]
 
         # 删除账号
@@ -602,8 +610,8 @@ class AccountManager:
                 try:
                     from telethon.tl.types import AuthPasswordRecovery
                     has_2fa = isinstance(result.next_type, AuthPasswordRecovery) or result.next_type is None
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Could not determine 2FA status for {account_id}: {e}")
 
             # 保存会话
             self.phone_sessions[account_id] = {
@@ -790,8 +798,8 @@ class AccountManager:
             session = self.phone_sessions[account_id]
             try:
                 await session["client"].disconnect()
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Error disconnecting phone session for {account_id}: {e}")
             del self.phone_sessions[account_id]
             return True
         return False
