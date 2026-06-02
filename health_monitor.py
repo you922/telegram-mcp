@@ -5,11 +5,14 @@
 """
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List
 from account_manager import account_manager
 from proxy_manager import proxy_manager
+
+logger = logging.getLogger("telegram_mcp.health_monitor")
 
 
 ACCOUNTS_DIR = "./accounts"
@@ -27,8 +30,12 @@ class HealthMonitor:
     def _load_health(self):
         """加载健康数据"""
         if os.path.exists(HEALTH_FILE):
-            with open(HEALTH_FILE, 'r', encoding='utf-8') as f:
-                self.health_data = json.load(f)
+            try:
+                with open(HEALTH_FILE, 'r', encoding='utf-8') as f:
+                    self.health_data = json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to load health data from {HEALTH_FILE}: {e}")
+                self.health_data = {}
 
     def _save_health(self):
         """保存健康数据"""

@@ -63,7 +63,7 @@ async def test_telegram_web():
                 aria_label = await btn.get_attribute('aria-label')
                 class_name = await btn.get_attribute('class')
                 print(f"  [{i}] 文本={text[:30] if text else ''}, aria-label={aria_label}, class={class_name}")
-            except:
+            except Exception:
                 pass
 
         print("\n按回车关闭浏览器...")

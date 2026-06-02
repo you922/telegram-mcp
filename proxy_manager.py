@@ -5,10 +5,13 @@
 """
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 import aiohttp
+
+logger = logging.getLogger("telegram_mcp.proxy_manager")
 
 
 ACCOUNTS_DIR = "./accounts"
@@ -27,11 +30,14 @@ class ProxyManager:
     def _load_proxies(self):
         """加载代理配置"""
         if os.path.exists(PROXIES_FILE):
-            with open(PROXIES_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                self.global_proxy = data.get("global")
-                self.proxies = data.get("proxies", {})
-                self.proxy_stats = data.get("stats", {})
+            try:
+                with open(PROXIES_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.global_proxy = data.get("global")
+                    self.proxies = data.get("proxies", {})
+                    self.proxy_stats = data.get("stats", {})
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to load proxies from {PROXIES_FILE}: {e}")
 
     def _save_proxies(self):
         """保存代理配置"""

@@ -4,10 +4,13 @@
 追踪账号使用量、消息发送量、活跃度分析
 """
 import json
+import logging
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List
 from collections import defaultdict
+
+logger = logging.getLogger("telegram_mcp.stats_tracker")
 
 
 ACCOUNTS_DIR = "./accounts"
@@ -24,8 +27,12 @@ class StatsTracker:
     def _load_stats(self):
         """加载统计数据"""
         if os.path.exists(STATS_FILE):
-            with open(STATS_FILE, 'r', encoding='utf-8') as f:
-                self.stats = json.load(f)
+            try:
+                with open(STATS_FILE, 'r', encoding='utf-8') as f:
+                    self.stats = json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to load stats from {STATS_FILE}: {e}")
+                self.stats = {}
 
     def _save_stats(self):
         """保存统计数据"""

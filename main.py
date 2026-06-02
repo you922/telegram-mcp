@@ -111,8 +111,8 @@ async def get_client() -> TelegramClient:
                 if acc_data.get("session_string"):
                     session_string = acc_data["session_string"]
                     break
-        except:
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to load accounts config: {e}")
     
     # 如果账号管理系统没有，则使用默认session文件
     if not session_string and os.path.exists(SESSION_FILE):
@@ -264,8 +264,8 @@ async def get_chat(chat_id: Union[int, str]) -> str:
             try:
                 participants = await c.get_participants(entity, limit=0)
                 lines.append(f"成员数: {participants.total}")
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Could not fetch participant count for {chat_id}: {e}")
 
         elif isinstance(entity, Chat):
             lines.extend([
@@ -1014,8 +1014,9 @@ async def get_invite_link(chat_id: Union[int, str]) -> str:
         try:
             link = await c.export_chat_invite_link(entity)
             return f"🔗 邀请链接: {link}"
-        except:
-            return "无法获取邀请链接"
+        except Exception as e:
+            logger.warning(f"Failed to export invite link for {chat_id}: {e}")
+            return f"无法获取邀请链接: {e}"
     except Exception as e:
         return log_and_format_error("get_invite_link", e, chat_id=chat_id)
 
@@ -2793,8 +2794,8 @@ async def get_privacy() -> str:
                     elif isinstance(rule, types.PrivacyValueAllowUsers):
                         rules.append(f"指定用户: {rule.users}")
                 settings.append(f"{type(key).__name__}: {', '.join(rules)}")
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Could not parse privacy key {type(key).__name__}: {e}")
 
         return "🔒 隐私设置:\n" + "\n".join(settings)
     except Exception as e:
