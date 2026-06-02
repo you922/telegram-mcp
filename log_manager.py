@@ -28,7 +28,7 @@ class LogManager:
             try:
                 with open(LOG_FILE, 'r', encoding='utf-8') as f:
                     self.logs = json.load(f)
-            except:
+            except (json.JSONDecodeError, OSError):
                 self.logs = []
 
     def _save_logs(self):

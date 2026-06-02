@@ -6,6 +6,7 @@
 import asyncio
 import json
 import os
+import stat
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from telethon import TelegramClient
@@ -14,9 +15,8 @@ import qrcode
 from io import BytesIO
 import base64
 
+from session_manager import API_ID, API_HASH
 
-API_ID = 2040
-API_HASH = "b18441a1ff607e10a989891a5462e627"
 ACCOUNTS_DIR = "./accounts"
 CONFIG_FILE = os.path.join(ACCOUNTS_DIR, "config.json")
 
@@ -43,10 +43,11 @@ class AccountManager:
                 self.accounts = json.load(f)
 
     def _save_config(self):
-        """保存账号配置"""
+        """保存账号配置 (owner-only permissions)."""
         self._ensure_dir()
         with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
             json.dump(self.accounts, f, ensure_ascii=False, indent=2)
+        os.chmod(CONFIG_FILE, stat.S_IRUSR | stat.S_IWUSR)  # 0o600
 
     def list_accounts(self) -> List[Dict]:
         """
@@ -95,7 +96,7 @@ class AccountManager:
             client = self.clients[account_id]
             try:
                 return client.is_connected()
-            except:
+            except Exception:
                 return False
         return False
 
@@ -410,7 +411,7 @@ class AccountManager:
             old_session = self.qr_sessions[account_id]
             try:
                 await old_session["client"].disconnect()
-            except:
+            except Exception:
                 pass
             del self.qr_sessions[account_id]
 
@@ -436,7 +437,7 @@ class AccountManager:
         if account_id in self.clients:
             try:
                 await self.clients[account_id].disconnect()
-            except:
+            except Exception:
                 pass
             del self.clients[account_id]
 
@@ -602,7 +603,7 @@ class AccountManager:
                 try:
                     from telethon.tl.types import AuthPasswordRecovery
                     has_2fa = isinstance(result.next_type, AuthPasswordRecovery) or result.next_type is None
-                except:
+                except Exception:
                     pass
 
             # 保存会话
@@ -790,7 +791,7 @@ class AccountManager:
             session = self.phone_sessions[account_id]
             try:
                 await session["client"].disconnect()
-            except:
+            except Exception:
                 pass
             del self.phone_sessions[account_id]
             return True

@@ -4,13 +4,17 @@ Web 管理后台
 FastAPI + WebSocket 实现实时状态推送
 """
 import asyncio
+import hashlib
+import hmac
 import json
 import os
+import secrets
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
@@ -68,12 +72,54 @@ async def lifespan(app: FastAPI):
     print("🛴 定时任务调度器和健康监控已停止")
 
 
-app = FastAPI(title="Telegram 账号管理后台", lifespan=lifespan)
+# ============ Security Configuration ============
 
-# 配置 CORS
+# API key for dashboard authentication.
+# Set DASHBOARD_API_KEY env var for production; a random key is generated otherwise.
+_configured_api_key = os.getenv("DASHBOARD_API_KEY", "")
+if not _configured_api_key:
+    _configured_api_key = secrets.token_urlsafe(32)
+    print(f"⚠️  No DASHBOARD_API_KEY set. Generated ephemeral key: {_configured_api_key}")
+    print("   Set DASHBOARD_API_KEY env var for a persistent key.")
+
+DASHBOARD_API_KEY: str = _configured_api_key
+
+# CORS origins: comma-separated list in CORS_ORIGINS env var, default to localhost only.
+_cors_origins_raw = os.getenv("CORS_ORIGINS", "http://localhost:8080")
+CORS_ORIGINS: List[str] = [
+    origin.strip()
+    for origin in _cors_origins_raw.split(",")
+    if origin.strip() and origin.strip() != "*"
+] or ["http://localhost:8080"]
+
+# Whether to expose interactive API docs (disable in production).
+ENABLE_API_DOCS: bool = os.getenv("ENABLE_API_DOCS", "false").lower() in ("true", "1", "yes")
+
+
+# ============ Auth dependency ============
+
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(request: Request, api_key: Optional[str] = Depends(_api_key_header)) -> None:
+    """Verify the API key from header or query parameter."""
+    key = api_key or request.query_params.get("api_key")
+    if not key or not hmac.compare_digest(key, DASHBOARD_API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+
+app = FastAPI(
+    title="Telegram 账号管理后台",
+    lifespan=lifespan,
+    docs_url="/docs" if ENABLE_API_DOCS else None,
+    redoc_url="/redoc" if ENABLE_API_DOCS else None,
+    dependencies=[Depends(verify_api_key)],
+)
+
+# Configure CORS — never use wildcard origins with credentials.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -905,7 +951,7 @@ class ConnectionManager:
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
-            except:
+            except Exception:
                 pass
 
 
