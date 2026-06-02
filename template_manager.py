@@ -9,8 +9,9 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import re
 
+from shared.config import ACCOUNTS_DIR
+from shared.json_store import JsonStore
 
-ACCOUNTS_DIR = "./accounts"
 TEMPLATE_FILE = os.path.join(ACCOUNTS_DIR, "templates.json")
 
 
@@ -19,26 +20,20 @@ class TemplateManager:
 
     def __init__(self):
         self.templates: Dict[str, Dict] = {}
+        self._store = JsonStore("templates.json")
         self._load_templates()
 
     def _load_templates(self):
         """加载模板"""
-        if os.path.exists(TEMPLATE_FILE):
-            try:
-                with open(TEMPLATE_FILE, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.templates = data.get("templates", {})
-            except:
-                self.templates = {}
+        data = self._store.load()
+        self.templates = data.get("templates", {})
 
     def _save_templates(self):
         """保存模板"""
-        os.makedirs(ACCOUNTS_DIR, exist_ok=True)
-        with open(TEMPLATE_FILE, 'w', encoding='utf-8') as f:
-            json.dump({
-                "templates": self.templates,
-                "updated_at": datetime.now().isoformat()
-            }, f, ensure_ascii=False, indent=2)
+        self._store.save({
+            "templates": self.templates,
+            "updated_at": datetime.now().isoformat()
+        })
 
     def add_template(
         self,

@@ -15,8 +15,9 @@ from account_manager import account_manager
 from template_manager import template_manager
 from log_manager import log_manager
 
+from shared.config import ACCOUNTS_DIR
+from shared.json_store import JsonStore
 
-ACCOUNTS_DIR = "./accounts"
 SCHEDULE_FILE = os.path.join(ACCOUNTS_DIR, "schedules.json")
 
 
@@ -26,6 +27,7 @@ class TaskScheduler:
     def __init__(self):
         self.schedules: Dict[str, Dict] = {}
         self.running = False
+        self._store = JsonStore("schedules.json")
         self._load_schedules()
 
         # 主任务执行器 - 引用 main.py 中的发送功能
@@ -33,22 +35,15 @@ class TaskScheduler:
 
     def _load_schedules(self):
         """加载定时任务配置"""
-        if os.path.exists(SCHEDULE_FILE):
-            try:
-                with open(SCHEDULE_FILE, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.schedules = data.get("schedules", {})
-            except:
-                self.schedules = {}
+        data = self._store.load()
+        self.schedules = data.get("schedules", {})
 
     def _save_schedules(self):
         """保存定时任务配置"""
-        os.makedirs(ACCOUNTS_DIR, exist_ok=True)
-        with open(SCHEDULE_FILE, 'w', encoding='utf-8') as f:
-            json.dump({
-                "schedules": self.schedules,
-                "updated_at": datetime.now().isoformat()
-            }, f, ensure_ascii=False, indent=2)
+        self._store.save({
+            "schedules": self.schedules,
+            "updated_at": datetime.now().isoformat()
+        })
 
     def set_send_message_function(self, func: Callable):
         """设置发送消息函数（从 main.py 导入）"""

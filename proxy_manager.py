@@ -10,8 +10,9 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import aiohttp
 
+from shared.config import ACCOUNTS_DIR
+from shared.json_store import JsonStore
 
-ACCOUNTS_DIR = "./accounts"
 PROXIES_FILE = os.path.join(ACCOUNTS_DIR, "proxies.json")
 
 
@@ -22,26 +23,23 @@ class ProxyManager:
         self.proxies: Dict[str, Dict] = {}  # 代理配置
         self.global_proxy: Optional[Dict] = None  # 全局代理
         self.proxy_stats: Dict[str, Dict] = {}  # 代理统计
+        self._store = JsonStore("proxies.json")
         self._load_proxies()
 
     def _load_proxies(self):
         """加载代理配置"""
-        if os.path.exists(PROXIES_FILE):
-            with open(PROXIES_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                self.global_proxy = data.get("global")
-                self.proxies = data.get("proxies", {})
-                self.proxy_stats = data.get("stats", {})
+        data = self._store.load()
+        self.global_proxy = data.get("global")
+        self.proxies = data.get("proxies", {})
+        self.proxy_stats = data.get("stats", {})
 
     def _save_proxies(self):
         """保存代理配置"""
-        os.makedirs(ACCOUNTS_DIR, exist_ok=True)
-        with open(PROXIES_FILE, 'w', encoding='utf-8') as f:
-            json.dump({
-                "global": self.global_proxy,
-                "proxies": self.proxies,
-                "stats": self.proxy_stats
-            }, f, ensure_ascii=False, indent=2)
+        self._store.save({
+            "global": self.global_proxy,
+            "proxies": self.proxies,
+            "stats": self.proxy_stats
+        })
 
     def list_proxies(self) -> Dict:
         """

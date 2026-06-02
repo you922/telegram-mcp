@@ -14,10 +14,10 @@ import qrcode
 from io import BytesIO
 import base64
 
+from shared.config import API_ID, API_HASH, ACCOUNTS_DIR
+from shared.json_store import JsonStore
+from shared.client_factory import create_telegram_client
 
-API_ID = 2040
-API_HASH = "b18441a1ff607e10a989891a5462e627"
-ACCOUNTS_DIR = "./accounts"
 CONFIG_FILE = os.path.join(ACCOUNTS_DIR, "config.json")
 
 
@@ -29,24 +29,12 @@ class AccountManager:
         self.clients: Dict[str, TelegramClient] = {}
         self.qr_sessions: Dict[str, Dict] = {}  # QR登录会话
         self.phone_sessions: Dict[str, Dict] = {}  # 手机号登录会话
-        self._load_config()
-        self._ensure_dir()
-
-    def _ensure_dir(self):
-        """确保目录存在"""
-        os.makedirs(ACCOUNTS_DIR, exist_ok=True)
-
-    def _load_config(self):
-        """加载账号配置"""
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                self.accounts = json.load(f)
+        self._store = JsonStore("config.json")
+        self.accounts = self._store.load()
 
     def _save_config(self):
         """保存账号配置"""
-        self._ensure_dir()
-        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-            json.dump(self.accounts, f, ensure_ascii=False, indent=2)
+        self._store.save(self.accounts)
 
     def list_accounts(self) -> List[Dict]:
         """
@@ -122,11 +110,7 @@ class AccountManager:
         """
         try:
             # 验证 session
-            client = TelegramClient(
-                StringSession(session_string),
-                API_ID,
-                API_HASH
-            )
+            client = create_telegram_client(session_string)
             await client.connect()
 
             if not await client.is_user_authorized():
@@ -817,7 +801,7 @@ class AccountManager:
         if not session_string:
             raise ValueError("账号没有有效的Session")
 
-        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
+        client = create_telegram_client(session_string)
         friends = []
 
         try:
@@ -871,7 +855,7 @@ class AccountManager:
         if not session_string:
             raise ValueError("账号没有有效的Session")
 
-        client = TelegramClient(StringSession(session_string), API_ID, API_HASH)
+        client = create_telegram_client(session_string)
         valid = []
         invalid = []
 

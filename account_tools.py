@@ -14,6 +14,7 @@ from proxy_manager import proxy_manager
 from health_monitor import health_monitor
 from stats_tracker import stats_tracker
 from batch_operations import batch_operations
+from shared.response import success_response, error_response, json_response
 
 
 def create_mcp_server():
@@ -37,11 +38,7 @@ def create_mcp_server():
             JSON格式的账号列表
         """
         accounts = account_manager.list_accounts()
-        return json.dumps({
-            "success": True,
-            "accounts": accounts,
-            "total": len(accounts)
-        }, ensure_ascii=False, indent=2)
+        return success_response(accounts=accounts, total=len(accounts))
 
     @mcp.tool(annotations=ToolAnnotations(
         title="生成登录二维码",
@@ -60,7 +57,7 @@ def create_mcp_server():
         """
         proxy = proxy_manager.get_proxy_for_account(account_id)
         result = await account_manager.generate_qr_code(account_id, proxy)
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json_response(result)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="检查二维码登录状态",
@@ -78,7 +75,7 @@ def create_mcp_server():
             包含状态(waiting/success/timeout/failed)和剩余时间的JSON
         """
         result = account_manager.check_qr_status(account_id)
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json_response(result)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="刷新二维码",
@@ -97,7 +94,7 @@ def create_mcp_server():
         """
         proxy = proxy_manager.get_proxy_for_account(account_id)
         result = await account_manager.refresh_qr_code(account_id, proxy)
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json_response(result)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="删除账号",
@@ -115,10 +112,7 @@ def create_mcp_server():
             操作结果
         """
         success = await account_manager.remove_account(account_id)
-        return json.dumps({
-            "success": success,
-            "message": "账号已删除" if success else "删除失败"
-        }, ensure_ascii=False)
+        return success_response("账号已删除") if success else error_response("删除失败")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="使用Session添加账号",
@@ -146,10 +140,7 @@ def create_mcp_server():
         success = await account_manager.add_account_with_session(
             account_id, session_string, phone, username
         )
-        return json.dumps({
-            "success": success,
-            "message": "账号添加成功" if success else "添加失败"
-        }, ensure_ascii=False)
+        return success_response("账号添加成功") if success else error_response("添加失败")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="导出Session",
@@ -168,16 +159,9 @@ def create_mcp_server():
         """
         session = account_manager.export_session(account_id)
         if session:
-            return json.dumps({
-                "success": True,
-                "account_id": account_id,
-                "session_string": session
-            }, ensure_ascii=False)
+            return success_response(account_id=account_id, session_string=session)
         else:
-            return json.dumps({
-                "success": False,
-                "error": "账号不存在"
-            }, ensure_ascii=False)
+            return error_response("账号不存在")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="批量导入账号",
@@ -198,12 +182,9 @@ def create_mcp_server():
         try:
             accounts_data = json.loads(accounts_json)
             result = await account_manager.batch_import(accounts_data)
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
         except Exception as e:
-            return json.dumps({
-                "success": False,
-                "error": str(e)
-            }, ensure_ascii=False)
+            return error_response(str(e))
 
     # ============ 代理管理工具 ============
 
@@ -220,10 +201,7 @@ def create_mcp_server():
             代理列表JSON
         """
         proxies = proxy_manager.list_proxies()
-        return json.dumps({
-            "success": True,
-            **proxies
-        }, ensure_ascii=False, indent=2)
+        return success_response(**proxies)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="添加代理",
@@ -255,10 +233,7 @@ def create_mcp_server():
         success = proxy_manager.add_proxy(
             proxy_id, protocol, host, port, username, password
         )
-        return json.dumps({
-            "success": success,
-            "message": "代理添加成功" if success else "代理协议不支持"
-        }, ensure_ascii=False)
+        return success_response("代理添加成功") if success else error_response("代理协议不支持")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="删除代理",
@@ -276,10 +251,7 @@ def create_mcp_server():
             操作结果
         """
         success = proxy_manager.delete_proxy(proxy_id)
-        return json.dumps({
-            "success": success,
-            "message": "代理已删除" if success else "代理不存在"
-        }, ensure_ascii=False)
+        return success_response("代理已删除") if success else error_response("代理不存在")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="设置全局代理",
@@ -307,10 +279,7 @@ def create_mcp_server():
             操作结果
         """
         success = proxy_manager.set_global_proxy(protocol, host, port, username, password)
-        return json.dumps({
-            "success": success,
-            "message": "全局代理设置成功" if success else "代理协议不支持"
-        }, ensure_ascii=False)
+        return success_response("全局代理设置成功") if success else error_response("代理协议不支持")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="移除全局代理",
@@ -325,10 +294,7 @@ def create_mcp_server():
             操作结果
         """
         success = proxy_manager.remove_global_proxy()
-        return json.dumps({
-            "success": success,
-            "message": "全局代理已移除"
-        }, ensure_ascii=False)
+        return success_response("全局代理已移除")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="为账号分配代理",
@@ -347,10 +313,7 @@ def create_mcp_server():
             操作结果
         """
         success = proxy_manager.assign_proxy_to_account(account_id, proxy_id)
-        return json.dumps({
-            "success": success,
-            "message": "代理分配成功" if success else "代理不存在"
-        }, ensure_ascii=False)
+        return success_response("代理分配成功") if success else error_response("代理不存在")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="取消账号代理",
@@ -369,10 +332,7 @@ def create_mcp_server():
             操作结果
         """
         success = proxy_manager.unassign_proxy_from_account(account_id, proxy_id)
-        return json.dumps({
-            "success": success,
-            "message": "代理分配已取消" if success else "代理不存在"
-        }, ensure_ascii=False)
+        return success_response("代理分配已取消") if success else error_response("代理不存在")
 
     @mcp.tool(annotations=ToolAnnotations(
         title="测试代理",
@@ -391,12 +351,12 @@ def create_mcp_server():
         """
         if proxy_id:
             if proxy_id not in proxy_manager.proxies:
-                return json.dumps({"success": False, "error": "代理不存在"}, ensure_ascii=False)
+                return error_response("代理不存在")
             result = await proxy_manager.test_proxy(proxy_manager.proxies[proxy_id])
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
         else:
             result = await proxy_manager.test_all_proxies()
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
 
     # ============ 健康监控工具 ============
 
@@ -416,7 +376,7 @@ def create_mcp_server():
             健康报告JSON
         """
         report = health_monitor.get_health_report(account_id)
-        return json.dumps(report, ensure_ascii=False, indent=2)
+        return json_response(report)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="检查账号健康",
@@ -434,7 +394,7 @@ def create_mcp_server():
             健康状态
         """
         result = await health_monitor.check_account_health(account_id)
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json_response(result)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="获取高风险账号",
@@ -449,11 +409,7 @@ def create_mcp_server():
             高风险账号列表
         """
         accounts = health_monitor.get_risk_accounts()
-        return json.dumps({
-            "success": True,
-            "risk_accounts": accounts,
-            "total": len(accounts)
-        }, ensure_ascii=False, indent=2)
+        return success_response(risk_accounts=accounts, total=len(accounts))
 
     # ============ 统计工具 ============
 
@@ -473,11 +429,7 @@ def create_mcp_server():
             统计数据JSON
         """
         stats = stats_tracker.get_account_stats(account_id)
-        return json.dumps({
-            "success": True,
-            "account_id": account_id,
-            "stats": stats
-        }, ensure_ascii=False, indent=2)
+        return success_response(account_id=account_id, stats=stats)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="获取每日统计",
@@ -495,11 +447,7 @@ def create_mcp_server():
             每日统计JSON
         """
         stats = stats_tracker.get_daily_stats(date)
-        return json.dumps({
-            "success": True,
-            "date": date or "today",
-            "stats": stats
-        }, ensure_ascii=False, indent=2)
+        return success_response(date=date or "today", stats=stats)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="获取每周统计",
@@ -517,11 +465,7 @@ def create_mcp_server():
             每周统计JSON
         """
         stats = stats_tracker.get_weekly_stats(week)
-        return json.dumps({
-            "success": True,
-            "week": week or "current",
-            "stats": stats
-        }, ensure_ascii=False, indent=2)
+        return success_response(week=week or "current", stats=stats)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="获取最活跃账号",
@@ -541,10 +485,7 @@ def create_mcp_server():
             最活跃账号列表
         """
         result = stats_tracker.get_top_accounts(by, limit, period)
-        return json.dumps({
-            "success": True,
-            "top_accounts": result
-        }, ensure_ascii=False, indent=2)
+        return success_response(top_accounts=result)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="获取活跃度趋势",
@@ -563,11 +504,7 @@ def create_mcp_server():
             活跃度趋势数据
         """
         trend = stats_tracker.get_activity_trend(account_id, days)
-        return json.dumps({
-            "success": True,
-            "account_id": account_id,
-            "trend": trend
-        }, ensure_ascii=False, indent=2)
+        return success_response(account_id=account_id, trend=trend)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="获取统计摘要",
@@ -582,10 +519,7 @@ def create_mcp_server():
             统计摘要JSON
         """
         summary = stats_tracker.get_summary()
-        return json.dumps({
-            "success": True,
-            "summary": summary
-        }, ensure_ascii=False, indent=2)
+        return success_response(summary=summary)
 
     # ============ 批量操作工具 ============
 
@@ -621,9 +555,9 @@ def create_mcp_server():
                 account_ids=ids,
                 delay=delay
             )
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
         except Exception as e:
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+            return error_response(str(e))
 
     @mcp.tool(annotations=ToolAnnotations(
         title="批量发送模板消息",
@@ -661,9 +595,9 @@ def create_mcp_server():
                 template_vars=vars_dict,
                 delay=delay
             )
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
         except Exception as e:
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+            return error_response(str(e))
 
     @mcp.tool(annotations=ToolAnnotations(
         title="批量检查账号健康",
@@ -684,9 +618,9 @@ def create_mcp_server():
         try:
             ids = json_mod.loads(account_ids) if account_ids else None
             result = await batch_operations.batch_check_health(ids)
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
         except Exception as e:
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+            return error_response(str(e))
 
     @mcp.tool(annotations=ToolAnnotations(
         title="批量导出Session",
@@ -707,9 +641,9 @@ def create_mcp_server():
         try:
             ids = json_mod.loads(account_ids) if account_ids else None
             result = await batch_operations.batch_export_sessions(ids)
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
         except Exception as e:
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+            return error_response(str(e))
 
     @mcp.tool(annotations=ToolAnnotations(
         title="批量删除账号",
@@ -730,9 +664,9 @@ def create_mcp_server():
         try:
             ids = json_mod.loads(account_ids)
             result = await batch_operations.batch_delete_accounts(ids)
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
         except Exception as e:
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+            return error_response(str(e))
 
     @mcp.tool(annotations=ToolAnnotations(
         title="批量获取对话列表",
@@ -754,9 +688,9 @@ def create_mcp_server():
         try:
             ids = json_mod.loads(account_ids) if account_ids else None
             result = await batch_operations.batch_get_dialogs(ids, limit)
-            return json.dumps(result, ensure_ascii=False, indent=2)
+            return json_response(result)
         except Exception as e:
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+            return error_response(str(e))
 
     return mcp
 

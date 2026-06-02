@@ -16,7 +16,8 @@ import qrcode
 from io import BytesIO
 import base64
 
-from session_manager import session_manager, API_ID, API_HASH, SESSION_FILE
+from session_manager import session_manager
+from shared.config import API_ID, API_HASH, SESSION_FILE
 
 app = Flask(__name__)
 CORS(app)
