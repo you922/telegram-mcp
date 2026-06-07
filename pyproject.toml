@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "telegram-mcp-complete"
-version = "1.0.0"
+version = "1.1.0"
 description = "Complete Telegram MCP Server with QR Code Login"
 authors = [{name = "User"}]
 license = {text = "MIT"}

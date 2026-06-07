@@ -142,4 +142,4 @@ telegram_mcp/
 - [ ] 所有 destructive 工具支持确认/限额/审计
 - [ ] CI 测试通过
 - [ ] 无 secrets/session 历史泄漏
-- [ ] 发布 v1.0.0 tag
+- [x] 发布 v1.1.0 tag
