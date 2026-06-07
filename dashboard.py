@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
@@ -26,6 +26,7 @@ from log_manager import log_manager
 from template_manager import template_manager
 from scheduler import task_scheduler
 from batch_operations import batch_operations
+from security import mask_phone, require_admin_token, require_websocket_token
 
 
 # ============ FastAPI 应用 ============
@@ -68,15 +69,29 @@ async def lifespan(app: FastAPI):
     print("🛴 定时任务调度器和健康监控已停止")
 
 
-app = FastAPI(title="Telegram 账号管理后台", lifespan=lifespan)
+app = FastAPI(
+    title="Telegram 账号管理后台",
+    lifespan=lifespan,
+    dependencies=[Depends(require_admin_token)],
+)
 
-# 配置 CORS
+# 配置 CORS：默认只允许本机后台，禁止任意来源携带凭据跨域调用
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "TELEGRAM_MCP_CORS_ORIGINS",
+        "http://127.0.0.1:8080,http://localhost:8080",
+    ).split(",")
+    if origin.strip()
+]
+if "*" in allowed_origins:
+    raise RuntimeError("TELEGRAM_MCP_CORS_ORIGINS 禁止使用 *，请配置明确来源。")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "X-Admin-Token", "Content-Type"],
 )
 
 # 挂载静态文件
@@ -222,16 +237,8 @@ async def add_account_with_session(request: dict):
 
 @app.get("/api/accounts/{account_id}/export-session")
 async def export_session(account_id: str):
-    """导出Session"""
-    session = account_manager.export_session(account_id)
-    if session:
-        return {
-            "success": True,
-            "account_id": account_id,
-            "session_string": session
-        }
-    else:
-        raise HTTPException(status_code=404, detail="账号不存在")
+    """Session 明文导出默认禁用。"""
+    raise HTTPException(status_code=403, detail="Session 明文导出已禁用。请使用加密备份流程。")
 
 
 @app.post("/api/accounts/batch-import")
@@ -295,7 +302,7 @@ async def send_phone_code(request: dict):
     result = await account_manager.send_phone_code(account_id, phone, proxy)
 
     if result.get("success"):
-        log_manager.add_log("账号管理", account_id, f"发送验证码到 {phone}", "info")
+        log_manager.add_log("账号管理", account_id, f"发送验证码到 {mask_phone(phone)}", "info")
     return result
 
 
@@ -809,7 +816,7 @@ async def batch_send_message_api(request: dict):
     chat_id = request.get("chat_id")
     message = request.get("message")
     account_ids = request.get("account_ids")
-    delay = request.get("delay", 2.0)
+    delay = max(float(request.get("delay", 5.0)), 5.0)
 
     if not chat_id or not message:
         raise HTTPException(status_code=400, detail="缺少必要参数")
@@ -830,7 +837,7 @@ async def batch_send_template_api(request: dict):
     template_id = request.get("template_id")
     account_ids = request.get("account_ids")
     template_vars = request.get("template_vars", {})
-    delay = request.get("delay", 2.0)
+    delay = max(float(request.get("delay", 5.0)), 5.0)
 
     if not chat_id or not template_id:
         raise HTTPException(status_code=400, detail="缺少必要参数")
@@ -855,10 +862,8 @@ async def batch_check_health_api(request: dict):
 
 @app.post("/api/batch/export-sessions")
 async def batch_export_sessions_api(request: dict):
-    """批量导出Session"""
-    account_ids = request.get("account_ids")
-    result = await batch_operations.batch_export_sessions(account_ids)
-    return result
+    """批量 Session 明文导出默认禁用。"""
+    raise HTTPException(status_code=403, detail="批量 Session 明文导出已禁用。请使用加密备份流程。")
 
 
 @app.post("/api/batch/delete-accounts")
@@ -915,6 +920,7 @@ manager = ConnectionManager()
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket 实时推送"""
+    await require_websocket_token(websocket)
     await manager.connect(websocket)
 
     try:
@@ -982,14 +988,16 @@ if __name__ == "__main__":
     print(f"🌐 全局代理: {'已设置' if proxy_manager.global_proxy else '未设置'}")
     print(f"🔧 独立代理: {len(proxy_manager.proxies)} 个")
     print("")
-    print("🌐 管理界面: http://localhost:8080/static/dashboard.html")
-    print("📡 API 文档: http://localhost:8080/docs")
-    print("🔌 WebSocket: ws://localhost:8080/ws")
+    host = os.getenv("TELEGRAM_MCP_DASHBOARD_HOST", "127.0.0.1")
+    port = int(os.getenv("TELEGRAM_MCP_DASHBOARD_PORT", "8080"))
+    print(f"🌐 管理界面: http://{host}:{port}/static/dashboard.html")
+    print(f"📡 API 文档: http://{host}:{port}/docs")
+    print(f"🔌 WebSocket: ws://{host}:{port}/ws （设置 Token 后需通过 Authorization 或 X-Admin-Token 传入）")
     print("=" * 60)
 
     uvicorn.run(
         app,
-        host="0.0.0.0",
-        port=8080,
+        host=host,
+        port=port,
         log_level="info"
     )

@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from dotenv import load_dotenv
+from security import decrypt_session, encrypt_session
 
 load_dotenv()
 
@@ -32,13 +33,17 @@ class SessionManager:
         """从文件加载 session"""
         if os.path.exists(SESSION_FILE):
             with open(SESSION_FILE, "r") as f:
-                return f.read().strip()
+                raw_session = f.read().strip()
+            session = decrypt_session(raw_session)
+            if raw_session and not raw_session.startswith("enc:v1:"):
+                self.save_session(session)
+            return session
         return None
 
     def save_session(self, session_string: str) -> None:
         """保存 session 到文件"""
         with open(SESSION_FILE, "w") as f:
-            f.write(session_string)
+            f.write(encrypt_session(session_string))
         self.session_string = session_string
 
     def load_user_data(self) -> Optional[Dict[str, Any]]:

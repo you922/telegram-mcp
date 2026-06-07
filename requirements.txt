@@ -1,3 +1,4 @@
+mcp[cli]>=1.8.0
 fastapi>=0.104.0
 uvicorn>=0.24.0
 python-multipart>=0.0.6
@@ -12,3 +13,4 @@ qrcode>=7.4.0
 pillow>=10.0.0
 flask>=2.3.0
 flask-cors>=4.0.0
+cryptography>=42.0.0

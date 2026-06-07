@@ -9,6 +9,8 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from collections import deque
 
+from security import sanitize_log_text
+
 
 ACCOUNTS_DIR = "./accounts"
 LOG_FILE = os.path.join(ACCOUNTS_DIR, "logs.json")
@@ -51,9 +53,9 @@ class LogManager:
         log = {
             "time": now_iso,
             "timestamp": now_iso,  # 前端使用的字段名
-            "action": action,
-            "account": account,
-            "detail": detail,
+            "action": sanitize_log_text(action),
+            "account": sanitize_log_text(account),
+            "detail": sanitize_log_text(detail),
             "level": level
         }
 

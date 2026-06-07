@@ -17,6 +17,7 @@ dependencies = [
     "playwright>=1.40.0",
     "aiohttp>=3.9.0",
     "nest-asyncio>=1.6.0",
+    "cryptography>=42.0.0",
 ]
 
 [project.scripts]

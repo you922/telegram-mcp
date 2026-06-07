@@ -16,13 +16,14 @@ import qrcode
 from io import BytesIO
 import base64
 
-# 内置公开凭据
-API_ID = 2040
-API_HASH = "b18441a1ff607e10a989891a5462e627"
-SESSION_FILE = ".telegram_session"
+from security import encrypt_session
+
+API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
+API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ff607e10a989891a5462e627")
+SESSION_FILE = os.getenv("SESSION_FILE", ".telegram_session")
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://127.0.0.1:*", "http://localhost:*"], supports_credentials=False)
 
 # 全局变量
 qr_login_instance = None
@@ -292,7 +293,7 @@ async def do_qr_login():
             print(f"✅ 登录成功: {me.first_name}")
 
             # 保存 session
-            session_string = client.session.save()
+            session_string = encrypt_session(client.session.save())
             with open(SESSION_FILE, "w") as f:
                 f.write(session_string)
 

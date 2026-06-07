@@ -19,7 +19,7 @@ import base64
 from session_manager import session_manager, API_ID, API_HASH, SESSION_FILE
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://127.0.0.1:*", "http://localhost:*"], supports_credentials=False)
 
 # 全局变量
 browser_instance: Optional[Browser] = None

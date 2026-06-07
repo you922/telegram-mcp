@@ -23,6 +23,7 @@ from telethon.tl.types import (
     ChannelParticipantsAdmins, ChannelParticipantsKicked,
     InputChatPhotoEmpty,
 )
+from security import decrypt_session, encrypt_session, mask_phone, validate_export_path, validate_file_path
 
 load_dotenv()
 
@@ -109,7 +110,7 @@ async def get_client() -> TelegramClient:
             # 获取第一个可用账号的session
             for acc_id, acc_data in accounts.items():
                 if acc_data.get("session_string"):
-                    session_string = acc_data["session_string"]
+                    session_string = decrypt_session(acc_data["session_string"])
                     break
         except:
             pass
@@ -117,7 +118,11 @@ async def get_client() -> TelegramClient:
     # 如果账号管理系统没有，则使用默认session文件
     if not session_string and os.path.exists(SESSION_FILE):
         with open(SESSION_FILE, "r") as f:
-            session_string = f.read().strip()
+            raw_session = f.read().strip()
+        session_string = decrypt_session(raw_session)
+        if raw_session and not raw_session.startswith("enc:v1:"):
+            with open(SESSION_FILE, "w") as f:
+                f.write(encrypt_session(session_string))
 
     if not session_string:
         raise ValueError(
@@ -156,7 +161,7 @@ def format_entity(entity) -> Dict[str, Any]:
     if hasattr(entity, "username") and entity.username:
         result["username"] = entity.username
     if hasattr(entity, "phone") and entity.phone:
-        result["phone"] = entity.phone
+        result["phone"] = mask_phone(entity.phone)
     return result
 
 
@@ -1213,6 +1218,7 @@ async def send_photo(
         caption: 图片说明
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
         entity = await c.get_entity(chat_id)
         await c.send_file(entity, file_path, caption=caption)
@@ -1235,6 +1241,7 @@ async def send_video(
         caption: 视频说明
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
         entity = await c.get_entity(chat_id)
         await c.send_file(entity, file_path, caption=caption, supports_streaming=True)
@@ -1257,6 +1264,7 @@ async def send_document(
         caption: 文件说明
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
         entity = await c.get_entity(chat_id)
         await c.send_file(entity, file_path, caption=caption, force_document=True)
@@ -1277,6 +1285,7 @@ async def send_voice(
         file_path: 语音文件路径
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
         entity = await c.get_entity(chat_id)
         await c.send_file(entity, file_path, voice_note=True)
@@ -1301,6 +1310,7 @@ async def send_audio(
         performer: 演者
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
         entity = await c.get_entity(chat_id)
         await c.send_file(entity, file_path, attributes=(title, performer))
@@ -1330,7 +1340,8 @@ async def download_media(
         if not message or not message.media:
             return "❌ 消息不包含媒体文件"
 
-        path = await c.download_media(message.media, file=save_path if save_path else None)
+        safe_path = validate_export_path(save_path, f"telegram_media_{chat_id}_{message_id}")
+        path = await c.download_media(message.media, file=safe_path)
         return f"✅ 媒体已下载到: {path}"
     except Exception as e:
         return log_and_format_error("download_media", e, chat_id=chat_id)
@@ -1378,6 +1389,7 @@ async def set_chat_photo(
         photo_path: 图片文件路径
     """
     try:
+        photo_path = validate_file_path(photo_path, must_exist=True)
         c = await get_client()
         entity = await c.get_entity(chat_id)
 
@@ -2436,6 +2448,7 @@ async def send_sticker(chat_id: Union[int, str], file_path: str) -> str:
         发送结果信息
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
         entity = await c.get_entity(chat_id)
 
@@ -2465,6 +2478,7 @@ async def send_gif(chat_id: Union[int, str], file_path: str, caption: str = "") 
         发送结果信息
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
         entity = await c.get_entity(chat_id)
 
@@ -2597,7 +2611,7 @@ async def send_media_group(
 
         files = []
         for path in file_paths:
-            files.append(path)
+            files.append(validate_file_path(path, must_exist=True))
 
         await c.send_file(entity, files, caption=caption)
 
@@ -2646,7 +2660,7 @@ async def export_chat(
             messages_data.append(msg_data)
 
         import json
-        output = output_path or f"/tmp/chat_export_{entity.id}.json"
+        output = validate_export_path(output_path, f"chat_export_{entity.id}.json")
         with open(output, 'w', encoding='utf-8') as f:
             json.dump(messages_data, f, ensure_ascii=False, indent=2)
 
@@ -2699,7 +2713,7 @@ async def get_chat_file(
         destructiveHint=False,
     )
 )
-async def backup_chats(output_dir: str = "/tmp/telegram_backup") -> str:
+async def backup_chats(output_dir: str = "") -> str:
     """备份所有聊天记录
 
     Args:
@@ -2713,6 +2727,7 @@ async def backup_chats(output_dir: str = "/tmp/telegram_backup") -> str:
         import json
         from pathlib import Path
 
+        output_dir = validate_export_path(output_dir, "backup")
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
         c = await get_client()
@@ -3443,6 +3458,7 @@ async def save_file(file_path: str) -> str:
         保存结果信息
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
 
         # 获取 Saved Messages 聊天
@@ -3473,6 +3489,7 @@ async def profile_photo(file_path: str) -> str:
         设置结果信息
     """
     try:
+        file_path = validate_file_path(file_path, must_exist=True)
         c = await get_client()
 
         await c(functions.photos.UploadProfilePhotoRequest(

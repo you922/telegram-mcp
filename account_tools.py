@@ -166,18 +166,10 @@ def create_mcp_server():
         Returns:
             Session字符串
         """
-        session = account_manager.export_session(account_id)
-        if session:
-            return json.dumps({
-                "success": True,
-                "account_id": account_id,
-                "session_string": session
-            }, ensure_ascii=False)
-        else:
-            return json.dumps({
-                "success": False,
-                "error": "账号不存在"
-            }, ensure_ascii=False)
+        return json.dumps({
+            "success": False,
+            "error": "Session 明文导出已禁用。请使用加密备份流程。"
+        }, ensure_ascii=False)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="批量导入账号",
@@ -703,13 +695,10 @@ def create_mcp_server():
         Returns:
             Session数据
         """
-        import json as json_mod
-        try:
-            ids = json_mod.loads(account_ids) if account_ids else None
-            result = await batch_operations.batch_export_sessions(ids)
-            return json.dumps(result, ensure_ascii=False, indent=2)
-        except Exception as e:
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+        return json.dumps({
+            "success": False,
+            "error": "批量 Session 明文导出已禁用。请使用加密备份流程。"
+        }, ensure_ascii=False)
 
     @mcp.tool(annotations=ToolAnnotations(
         title="批量删除账号",

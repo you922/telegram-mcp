@@ -9,6 +9,9 @@ import os
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 import aiohttp
+from urllib.parse import quote
+
+from security import decrypt_session, encrypt_session, mask_secret
 
 
 ACCOUNTS_DIR = "./accounts"
@@ -54,9 +57,17 @@ class ProxyManager:
                 "stats": 代理统计信息
             }
         """
+        def safe_proxy(proxy):
+            if not proxy:
+                return proxy
+            data = dict(proxy)
+            if data.get("password"):
+                data["password"] = mask_secret(data["password"])
+            return data
+
         return {
-            "global": self.global_proxy,
-            "proxies": self.proxies,
+            "global": safe_proxy(self.global_proxy),
+            "proxies": {pid: safe_proxy(proxy) for pid, proxy in self.proxies.items()},
             "stats": self.proxy_stats
         }
 
@@ -92,7 +103,7 @@ class ProxyManager:
             "host": host,
             "port": port,
             "username": username,
-            "password": password,
+            "password": encrypt_session(password) if password else None,
             "created_at": datetime.now().isoformat()
         }
 
@@ -158,7 +169,7 @@ class ProxyManager:
             "host": host,
             "port": port,
             "username": username,
-            "password": password,
+            "password": encrypt_session(password) if password else None,
             "updated_at": datetime.now().isoformat()
         }
 
@@ -243,6 +254,8 @@ class ProxyManager:
         port = proxy_config.get('port')
         username = proxy_config.get('username')
         password = proxy_config.get('password')
+        if password:
+            password = decrypt_session(password)
 
         # 基础配置
         config = {
@@ -348,9 +361,11 @@ class ProxyManager:
             port = proxy_config.get("port")
             username = proxy_config.get("username")
             password = proxy_config.get("password")
+            if password:
+                password = decrypt_session(password)
 
             if username and password:
-                proxy_url = f"{protocol}://{username}:{password}@{host}:{port}"
+                proxy_url = f"{protocol}://{quote(str(username), safe='')}:{quote(str(password), safe='')}@{host}:{port}"
             else:
                 proxy_url = f"{protocol}://{host}:{port}"
 

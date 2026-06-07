@@ -14,9 +14,11 @@ import qrcode
 from io import BytesIO
 import base64
 
+from security import decrypt_session, encrypt_session, mask_phone
 
-API_ID = 2040
-API_HASH = "b18441a1ff607e10a989891a5462e627"
+
+API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
+API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ff607e10a989891a5462e627")
 ACCOUNTS_DIR = "./accounts"
 CONFIG_FILE = os.path.join(ACCOUNTS_DIR, "config.json")
 
@@ -37,10 +39,19 @@ class AccountManager:
         os.makedirs(ACCOUNTS_DIR, exist_ok=True)
 
     def _load_config(self):
-        """加载账号配置"""
+        """加载账号配置，并自动迁移旧明文 Session 为加密存储。"""
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
                 self.accounts = json.load(f)
+
+            migrated = False
+            for account in self.accounts.values():
+                session_string = account.get("session_string")
+                if session_string and not session_string.startswith("enc:v1:"):
+                    account["session_string"] = encrypt_session(session_string)
+                    migrated = True
+            if migrated:
+                self._save_config()
 
     def _save_config(self):
         """保存账号配置"""
@@ -71,7 +82,7 @@ class AccountManager:
                 "account_id": account_id,
                 "username": account.get("username", "N/A"),
                 "user_id": account.get("user_id", "N/A"),
-                "phone": account.get("phone", "N/A"),
+                "phone": mask_phone(account.get("phone", "N/A")),
                 "first_name": account.get("first_name", ""),
                 "last_name": account.get("last_name", ""),
                 "is_premium": account.get("is_premium", False),
@@ -139,7 +150,7 @@ class AccountManager:
 
             self.accounts[account_id] = {
                 "account_id": account_id,
-                "session_string": session_string,
+                "session_string": encrypt_session(session_string),
                 "phone": phone or me.phone,
                 "username": username or me.username or "N/A",
                 "user_id": user_id or me.id,
@@ -300,7 +311,7 @@ class AccountManager:
             # 保存账号
             self.accounts[account_id] = {
                 "account_id": account_id,
-                "session_string": session_string,
+                "session_string": encrypt_session(session_string),
                 "phone": me.phone,
                 "username": me.username or "N/A",
                 "user_id": me.id,
@@ -483,7 +494,7 @@ class AccountManager:
 
         # 创建新连接
         account = self.accounts[account_id]
-        session_string = account["session_string"]
+        session_string = decrypt_session(account["session_string"])
 
         client = TelegramClient(
             StringSession(session_string),
@@ -528,7 +539,7 @@ class AccountManager:
         """
         if account_id not in self.accounts:
             return None
-        return self.accounts[account_id].get("session_string")
+        return None  # 明文 Session 导出默认禁用
 
     # ==================== 手机号登录功能 ====================
 
@@ -745,7 +756,7 @@ class AccountManager:
 
             self.accounts[account_id] = {
                 "account_id": account_id,
-                "session_string": session_string,
+                "session_string": encrypt_session(session_string),
                 "phone": me.phone,
                 "username": me.username or "N/A",
                 "user_id": me.id,
@@ -812,7 +823,7 @@ class AccountManager:
             raise ValueError(f"账号 {account_id} 不存在")
 
         account = self.accounts[account_id]
-        session_string = account.get("session_string")
+        session_string = decrypt_session(account.get("session_string")) if account.get("session_string") else None
 
         if not session_string:
             raise ValueError("账号没有有效的Session")
@@ -866,7 +877,7 @@ class AccountManager:
             raise ValueError(f"账号 {account_id} 不存在")
 
         account = self.accounts[account_id]
-        session_string = account.get("session_string")
+        session_string = decrypt_session(account.get("session_string")) if account.get("session_string") else None
 
         if not session_string:
             raise ValueError("账号没有有效的Session")
